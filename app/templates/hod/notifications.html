@@ -1,0 +1,180 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">🔔 Notifications</h4>
+        <p class="text-muted small mb-0">
+            {% if unread_count > 0 %}
+                {{ unread_count }} unread · {{ notifications | length }} total
+            {% else %}
+                All caught up · {{ notifications | length }} total
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if unread_count > 0 %}
+        <form method="POST"
+              action="{{ url_for('student.mark_all_read') }}">
+            <button class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-check-all me-1"></i>Mark All Read
+            </button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('student.dashboard') }}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-house me-1"></i>Dashboard
+        </a>
+    </div>
+</div>
+
+{% if notifications %}
+
+<!-- Notification list -->
+<div class="card border-0 shadow-sm">
+    {% for notif in notifications %}
+
+    {% set icon_map = {
+        'danger' : 'exclamation-octagon-fill',
+        'warning': 'exclamation-triangle-fill',
+        'success': 'check-circle-fill',
+        'info'   : 'info-circle-fill',
+    } %}
+    {% set color_map = {
+        'danger' : 'danger',
+        'warning': 'warning',
+        'success': 'success',
+        'info'   : 'info',
+    } %}
+
+    <div class="list-group-item border-0 border-bottom px-4 py-3
+        {{ 'bg-light' if not notif.is_read else '' }}"
+         id="notif-{{ notif.id }}">
+        <div class="d-flex gap-3 align-items-start">
+
+            <!-- Type icon -->
+            <div class="flex-shrink-0 mt-1">
+                <i class="bi bi-{{ icon_map.get(notif.type, 'bell') }}
+                   text-{{ color_map.get(notif.type, 'secondary') }} fs-5"></i>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1 min-width-0">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="fw-semibold {{ 'text-' ~ notif.type }}
+                                {{ '' if notif.is_read else 'fw-bold' }}">
+                        {{ notif.title }}
+                    </div>
+                    <div class="flex-shrink-0 d-flex align-items-center gap-2">
+                        {% if not notif.is_read %}
+                        <span class="badge rounded-pill bg-{{ notif.type }}
+                            {{ 'text-dark' if notif.type in ('warning','info') else '' }}"
+                              style="font-size:.6rem">
+                            NEW
+                        </span>
+                        {% endif %}
+                        <span class="text-muted small">
+                            {{ notif.created_at.strftime('%d %b %Y, %H:%M') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="small mt-1 {{ 'text-muted' if notif.is_read else '' }}">
+                    {{ notif.message }}
+                </div>
+
+                <!-- Action buttons -->
+                <div class="d-flex gap-2 mt-2">
+                    {% if not notif.is_read %}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            onclick='"markRead({{ notif.id }}, this)"'  <--!edited-->
+                            title="Mark as read">
+                        <i class="bi bi-check me-1"></i>Mark Read
+                    </button>
+                    {% else %}
+                    <span class="small text-muted">
+                        <i class="bi bi-check-all me-1"></i>
+                        Read {{ notif.read_at.strftime('%d %b') if notif.read_at else '' }}
+                    </span>
+                    {% endif %}
+
+                    {% if notif.is_read %}
+                    <form method="POST"
+                          action="{{ url_for('student.delete_notification', notif_id=notif.id) }}"
+                          style="display:inline"
+                          onsubmit="return confirm('Delete this notification?')">
+                        <button class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-bell-slash display-5 d-block mb-3"></i>
+    <p class="mb-0">No notifications yet.</p>
+    <small>You'll receive alerts here for attendance warnings,
+           semester promotions, and important updates.</small>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function markRead(notifId, btn) {
+    try {
+        const resp = await fetch(`/student/notifications/${notifId}/read`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            }
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            // Remove unread styling from this row
+            const row = document.getElementById(`notif-${notifId}`);
+            row.classList.remove('bg-light');
+
+            // Replace the "Mark Read" button with a delete button + "Read" text
+            btn.closest('.d-flex').innerHTML = `
+                <span class="small text-muted">
+                    <i class="bi bi-check-all me-1"></i>Just marked read
+                </span>
+                <form method="POST"
+                      action="/student/notifications/${notifId}/delete"
+                      onsubmit="return confirm('Delete?')"
+                      style="display:inline">
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            `;
+
+            // Update the navbar bell count
+            const badge = document.querySelector('.navbar .bi-bell')
+                              ?.closest('a')
+                              ?.querySelector('.badge');
+            if (badge) {
+                const current = parseInt(badge.textContent) || 0;
+                if (current <= 1) badge.remove();
+                else badge.textContent = current - 1;
+            }
+
+            // Remove the "NEW" pill on this notification
+            const newPill = row.querySelector('.rounded-pill');
+            if (newPill) newPill.remove();
+        }
+    } catch (err) {
+        console.error('Mark read failed:', err);
+    }
+}
+</script>
+{% endblock %}

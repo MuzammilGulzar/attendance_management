@@ -1,0 +1,82 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">👨‍💼 HOD Management</h3>
+        <p class="text-muted small mb-0">{{ hods|length }} active HOD(s)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('principal.assign_hod') }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i>Reassign HOD
+        </a>
+        <a href="{{ url_for('principal.create_hod') }}"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-person-plus me-1"></i>New HOD
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Employee ID</th>
+                    <th>Department</th>
+                    <th>Program</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hod in hods %}
+                <tr>
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td>
+                        <div class="fw-semibold">{{ hod.full_name }}</div>
+                    </td>
+                    <td class="text-muted small">{{ hod.email }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark font-monospace">
+                            {{ hod.employee_id }}
+                        </span>
+                    </td>
+                    <td>{{ hod.department.name }}</td>
+                    <td>
+                        <span class="badge
+                            {% if hod.department.program_type == 'UG' %}bg-primary
+                            {% elif hod.department.program_type == 'PG' %}bg-warning text-dark
+                            {% else %}bg-info text-dark{% endif %}">
+                            {{ hod.department.program_type }}
+                        </span>
+                    </td>
+                    <td>
+                        <!-- Deactivate button with confirmation -->
+                        <form method="POST"
+                              action="{{ url_for('principal.deactivate_hod_view', teacher_id=hod.id) }}"
+                              onsubmit="return confirm('Deactivate {{ hod.full_name }} as HOD? They will lose access immediately.')">
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-person-x me-1"></i>Deactivate
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-person-badge display-6 d-block mb-2"></i>
+                        No HODs assigned yet.<br>
+                        <a href="{{ url_for('principal.create_hod') }}">Create your first HOD</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

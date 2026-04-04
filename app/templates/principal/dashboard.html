@@ -1,0 +1,104 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">🏛 Principal Dashboard</h3>
+        <p class="text-muted small mb-0">System-wide overview</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('principal.create_department_view') }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-building-add me-1"></i>New Department
+        </a>
+        <a href="{{ url_for('principal.create_hod') }}"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-person-plus me-1"></i>New HOD
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    {% set cards = [
+        ('Departments',       stats.total_departments,   'building',       'primary'),
+        ('HODs',              stats.total_hods,           'person-badge',   'warning'),
+        ('Teachers',          stats.total_teachers,       'person-workspace','info'),
+        ('Active Students',   stats.total_students,       'mortarboard',    'success'),
+        ('Graduated',         stats.graduated_students,   'patch-check',    'secondary'),
+    ] %}
+    {% for label, value, icon, colour in cards %}
+    <div class="col-6 col-md-4 col-lg-2-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-2 text-{{ colour }} mb-1">
+                    <i class="bi bi-{{ icon }}"></i>
+                </div>
+                <div class="fs-3 fw-bold">{{ value }}</div>
+                <div class="text-muted small">{{ label }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Department Breakdown Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Department Breakdown</h6>
+        <a href="{{ url_for('principal.list_departments') }}"
+           class="btn btn-outline-secondary btn-sm">Manage</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Department</th>
+                    <th>Code</th>
+                    <th>Program</th>
+                    <th>HOD</th>
+                    <th class="text-center">Active Students</th>
+                    <th class="text-center">Graduated</th>
+                    <th class="text-center">Teachers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in stats.dept_breakdown %}
+                <tr>
+                    <td class="fw-semibold">{{ d.name }}</td>
+                    <td><span class="badge bg-light text-dark">{{ d.code }}</span></td>
+                    <td>
+                        <span class="badge
+                            {% if d.program_type == 'UG' %}bg-primary
+                            {% elif d.program_type == 'PG' %}bg-purple
+                            {% else %}bg-info{% endif %}">
+                            {{ d.program_type }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if d.hod_name == 'Not assigned' %}
+                            <span class="text-danger small">
+                                <i class="bi bi-exclamation-circle me-1"></i>Not assigned
+                            </span>
+                        {% else %}
+                            {{ d.hod_name }}
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ d.active_students }}</td>
+                    <td class="text-center text-muted">{{ d.graduated_students }}</td>
+                    <td class="text-center">{{ d.teachers }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No departments yet.
+                        <a href="{{ url_for('principal.create_department_view') }}">Create one</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

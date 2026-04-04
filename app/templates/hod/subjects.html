@@ -1,0 +1,64 @@
+{% extends "shared/base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">📚 Subjects</h4>
+    <a href="{{ url_for('hod.create_subject_view') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>New Subject
+    </a>
+</div>
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th><th>Name</th><th>Code</th>
+                    <th>Program</th><th>Semester</th>
+                    <th>Total Classes</th><th>Teachers</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for subject in subjects %}
+                <tr>
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td class="fw-semibold">{{ subject.name }}</td>
+                    <td><span class="badge bg-secondary font-monospace">{{ subject.code }}</span></td>
+                    <td>
+                        <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                            {{ subject.program_type }}
+                        </span>
+                    </td>
+                    <td>Sem {{ subject.semester }}</td>
+                    <td>{{ subject.total_classes }}</td>
+                    <td class="small text-muted">
+                        {% set tlist = subject.teachers.all() %}
+                        {{ tlist | map(attribute='full_name') | join(', ') or 'None' }}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('hod.edit_subject', subject_id=subject.id) }}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST"
+                                  action="{{ url_for('hod.deactivate_subject_view', subject_id=subject.id) }}"
+                                  onsubmit="return confirm('Deactivate {{ subject.name }}?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        No subjects yet.
+                        <a href="{{ url_for('hod.create_subject_view') }}">Add one</a>.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

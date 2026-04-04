@@ -1,0 +1,85 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_select %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-7">
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-1">
+                <i class="bi bi-arrow-up-circle me-2 text-warning"></i>
+                Bulk Semester Promotion
+            </h4>
+            <p class="text-muted small mb-4">
+                Select a program type and current semester.
+                ALL active, non-graduated students at that semester
+                will be promoted to the next semester at once.
+            </p>
+
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="row g-3">
+                    <div class="col-md-6">{{ render_select(form.program_type) }}</div>
+                    <div class="col-md-6">{{ render_select(form.from_semester) }}</div>
+                </div>
+
+                <div class="alert alert-info small mt-3 mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Double-promotion is prevented automatically.</strong>
+                    Students already promoted to the next semester will not appear
+                    in this query — the system only picks students currently AT
+                    the selected semester.
+                </div>
+
+                {{ form.submit(class="btn btn-warning px-4") }}
+            </form>
+        </div>
+    </div>
+
+    <!-- Result card (shown after form submission) -->
+    {% if result %}
+    <div class="card border-0 shadow-sm
+                {{ 'border-success' if result.promoted > 0 else 'border-info' }}">
+        <div class="card-header
+                    {{ 'bg-success text-white' if result.promoted > 0 else 'bg-info text-dark' }}
+                    py-3">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-check-circle me-2"></i>Promotion Result
+            </h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3 mb-3">
+                <div class="col-6 text-center">
+                    <div class="fs-2 fw-bold text-success">{{ result.promoted }}</div>
+                    <div class="small text-muted">Promoted to Sem {{ result.to_semester }}</div>
+                </div>
+                <div class="col-6 text-center">
+                    <div class="fs-2 fw-bold text-secondary">{{ result.skipped }}</div>
+                    <div class="small text-muted">Skipped</div>
+                </div>
+            </div>
+
+            {% if result.promoted_names %}
+            <p class="small fw-semibold mb-1">Promoted students:</p>
+            <ul class="small text-success mb-3">
+                {% for name in result.promoted_names %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if result.skipped_names %}
+            <p class="small fw-semibold mb-1">Skipped:</p>
+            <ul class="small text-muted">
+                {% for name in result.skipped_names %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

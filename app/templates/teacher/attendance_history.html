@@ -1,0 +1,94 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">{{ subject.code }} — History</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">🕐 {{ subject.name }} — History</h4>
+        <span class="badge bg-secondary">{{ subject.code }}</span>
+        <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }} ms-1">
+            {{ subject.program_type }} · Sem {{ subject.semester }}
+        </span>
+    </div>
+    <a href="{{ url_for('teacher.mark_attendance_view', subject_id=subject.id) }}"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-pencil-square me-1"></i>Mark Today
+    </a>
+</div>
+
+<div class="alert alert-info border-0 small mb-3">
+    <i class="bi bi-lock me-1"></i>
+    Attendance records are <strong>read-only</strong> for teachers.
+    Contact your HOD if any changes are needed.
+</div>
+
+{% if history %}
+{% for session in history %}
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white py-2 px-3 d-flex
+                justify-content-between align-items-center">
+        <div>
+            <span class="fw-semibold">{{ session.date.strftime('%A, %d %B %Y') }}</span>
+            <span class="ms-3 small text-muted">
+                {{ session.total }} student(s)
+            </span>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-success">{{ session.present }} Present</span>
+            <span class="badge bg-danger">{{ session.absent }} Absent</span>
+            {% if session.leave %}<span class="badge bg-warning text-dark">{{ session.leave }} Leave</span>{% endif %}
+            {% if session.event %}<span class="badge bg-info text-dark">{{ session.event }} Event</span>{% endif %}
+            <span class="badge bg-light text-dark border fw-semibold">{{ session.pct }}%</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <tbody>
+            {% for record in session.records %}
+            <tr>
+                <td class="ps-3 font-monospace small text-muted" style="width:120px">
+                    {{ record.student.roll_number }}
+                </td>
+                <td>{{ record.student.full_name }}</td>
+                <td>
+                    <span class="badge bg-{{ status_colors[record.status] }}
+                        {{ 'text-dark' if record.status in ('leave','event') else '' }}">
+                        {{ status_labels[record.status] }}
+                    </span>
+                    {% if record.is_edited %}
+                    <span class="badge bg-secondary small" title="Edited by HOD: {{ record.edit_reason }}">
+                        <i class="bi bi-pencil"></i>
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="small text-muted">
+                    by {{ record.marked_by.full_name }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-calendar-x display-5 d-block mb-3"></i>
+    No attendance records yet for this subject.
+    <br>
+    <a href="{{ url_for('teacher.mark_attendance_view', subject_id=subject.id) }}"
+       class="btn btn-primary btn-sm mt-3">
+        Mark First Attendance
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

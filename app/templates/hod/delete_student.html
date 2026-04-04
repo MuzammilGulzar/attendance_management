@@ -1,0 +1,37 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_field %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm border-danger">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-1 text-danger">
+                <i class="bi bi-person-x me-2"></i>Remove Student
+            </h4>
+            <p class="text-muted small mb-4">
+                You are removing <strong>{{ student.full_name }}</strong>
+                ({{ student.roll_number }}, {{ student.program_type }},
+                Sem {{ student.semester }}).
+                Their attendance records will be preserved.
+            </p>
+
+            <div class="alert alert-warning small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                This action deactivates the student's login. It cannot be undone
+                without contacting the system administrator.
+            </div>
+
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {{ render_field(form.reason) }}
+                <div class="d-flex gap-2 mt-3">
+                    {{ form.submit(class="btn btn-danger") }}
+                    <a href="{{ url_for('hod.list_students') }}"
+                       class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

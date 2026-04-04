@@ -1,0 +1,88 @@
+{% extends "shared/base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">👨‍🏫 Teachers</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('hod.assign_subject') }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-link me-1"></i>Assign Subject
+        </a>
+        <a href="{{ url_for('hod.create_teacher_view') }}"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add Teacher
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th><th>Name</th><th>Email</th>
+                    <th>Employee ID</th><th>Subjects Assigned</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for teacher in teachers %}
+                <tr>
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td class="fw-semibold">{{ teacher.full_name }}</td>
+                    <td class="small text-muted">{{ teacher.email }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark font-monospace">
+                            {{ teacher.employee_id }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set subj_list = teacher.subjects.all() %}
+                        {% if subj_list %}
+                            {% for s in subj_list %}
+                            <span class="badge bg-info text-dark me-1">
+                                {{ s.code }}
+                                <form method="POST"
+                                      action="{{ url_for('hod.unassign_subject',
+                                                teacher_id=teacher.id,
+                                                subject_id=s.id) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Remove {{ s.code }} from {{ teacher.full_name }}?')">
+                                    <button type="submit"
+                                            class="btn-close btn-close-white"
+                                            style="font-size:.5rem"
+                                            aria-label="Remove"></button>
+                                </form>
+                            </span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted small fst-italic">None assigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('hod.edit_teacher', teacher_id=teacher.id) }}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST"
+                                  action="{{ url_for('hod.deactivate_teacher_view', teacher_id=teacher.id) }}"
+                                  onsubmit="return confirm('Deactivate {{ teacher.full_name }}?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-person-x"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        No teachers yet.
+                        <a href="{{ url_for('hod.create_teacher_view') }}">Add one</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

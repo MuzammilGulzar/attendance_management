@@ -1,0 +1,126 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">🎓 Students</h4>
+        <p class="text-muted small mb-0">{{ students|length }} student(s) shown</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('hod.bulk_promote_view') }}"
+           class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-up-circle me-1"></i>Bulk Promote
+        </a>
+        <a href="{{ url_for('hod.create_student_view') }}"
+           class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Enroll Student
+        </a>
+    </div>
+</div>
+
+<!-- Semester filter pills -->
+<div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+    <span class="text-muted small me-1">Filter:</span>
+    <a href="{{ url_for('hod.list_students') }}"
+       class="btn btn-sm {{ 'btn-dark' if not selected_sem else 'btn-outline-dark' }}">
+        All
+    </a>
+    {% for item in sem_breakdown %}
+    <a href="{{ url_for('hod.list_students',
+                semester=item.semester,
+                program_type=item.program_type) }}"
+       class="btn btn-sm
+              {{ 'btn-primary' if (selected_sem == item.semester and selected_pt == item.program_type)
+                 else 'btn-outline-primary' }}">
+        {{ item.label }}
+        <span class="badge bg-white text-primary ms-1">{{ item.count }}</span>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Students table -->
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Roll No.</th><th>Name</th><th>Program</th>
+                    <th>Semester</th><th>Attendance %</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for student in students %}
+                <tr>
+                    <td class="font-monospace small">{{ student.roll_number }}</td>
+                    <td class="fw-semibold">{{ student.full_name }}</td>
+                    <td>
+                        <span class="badge
+                            {{ 'bg-primary' if student.program_type == 'UG' else 'bg-warning text-dark' }}">
+                            {{ student.program_type }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark">
+                            Sem {{ student.semester }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set pct = student.attendance_percentage %}
+                        <span class="fw-semibold
+                            {{ 'text-danger' if pct < 75
+                               else 'text-warning' if pct < 85
+                               else 'text-success' }}">
+                            {{ pct }}%
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <!-- Promote -->
+                            {% if student.can_be_promoted %}
+                            <form method="POST"
+                                  action="{{ url_for('hod.promote_student', student_id=student.id) }}"
+                                  onsubmit="return confirm('Promote {{ student.full_name }} to Semester {{ student.semester + 1 }}?')">
+                                <button class="btn btn-sm btn-outline-success"
+                                        title="Promote to Sem {{ student.semester + 1 }}">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Graduate (if at valid semester) -->
+                            {% if student.can_be_graduated %}
+                            <a href="{{ url_for('hod.graduate_student',
+                                       student_id=student.id) }}"
+                               class="btn btn-sm btn-outline-success"
+                               title="Graduate this student">
+                                <i class="bi bi-patch-check"></i>
+                            </a>
+                            {% endif %}
+
+                            <!-- Delete -->
+                            <a href="{{ url_for('hod.delete_student', student_id=student.id) }}"
+                               class="btn btn-sm btn-outline-danger"
+                               title="Remove student">
+                                <i class="bi bi-person-x"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        {% if selected_sem %}
+                            No students in Semester {{ selected_sem }}.
+                            <a href="{{ url_for('hod.list_students') }}">Show all</a>.
+                        {% else %}
+                            No students enrolled.
+                            <a href="{{ url_for('hod.create_student_view') }}">Enroll one</a>.
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

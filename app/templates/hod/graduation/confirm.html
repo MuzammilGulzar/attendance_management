@@ -1,0 +1,95 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_field %}
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-12 col-md-7">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('hod.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('hod.graduation_management') }}">Graduation</a></li>
+            <li class="breadcrumb-item active">Confirm</li>
+        </ol>
+    </nav>
+
+    <!-- Student summary card -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+
+            <div class="d-flex align-items-start gap-3 mb-4">
+                <div class="rounded-circle bg-success text-white d-flex
+                            align-items-center justify-content-center"
+                     style="width:56px;height:56px;font-size:1.5rem;flex-shrink:0">
+                    🎓
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-1">{{ student.full_name }}</h5>
+                    <p class="text-muted small mb-0">
+                        {{ student.roll_number }} &nbsp;|&nbsp;
+                        {{ student.department.name }} &nbsp;|&nbsp;
+                        {{ student.program_type }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Graduation details grid -->
+            <div class="row g-3 mb-4">
+                {% for label, value, color in [
+                    ('Programme',        student.program_type, 'primary' if student.program_type == 'UG' else 'warning'),
+                    ('Current Semester', 'Semester ' ~ student.semester, 'success'),
+                    ('Max Semester',     'Semester ' ~ student.max_semester, 'secondary'),
+                    ('Attendance',       student.attendance_percentage ~ '%',
+                     'success' if student.attendance_percentage >= 75 else 'danger'),
+                ] %}
+                <div class="col-6">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body py-2 px-3">
+                            <div class="text-muted small">{{ label }}</div>
+                            <div class="fw-bold text-{{ color }}">{{ value }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Valid semesters info -->
+            <div class="alert alert-success border-0 small mb-4">
+                <i class="bi bi-check-circle me-1"></i>
+                <strong>Eligible for graduation.</strong>
+                {{ student.program_type }} students can graduate at:
+                Semester {{ student.valid_graduation_semesters | join(' or Semester ') }}.
+                This student is at Semester {{ student.semester }}. ✓
+            </div>
+
+            <!-- Warning -->
+            <div class="alert alert-warning border-0 small mb-4">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <strong>This action is permanent and irreversible.</strong>
+                After graduation:
+                <ul class="mb-0 mt-1">
+                    <li>Student's login will be <strong>disabled immediately</strong></li>
+                    <li>Student cannot be promoted to any further semester</li>
+                    <li>Their attendance and academic records are preserved forever</li>
+                    <li>This appears in the alumni register permanently</li>
+                </ul>
+            </div>
+
+            <!-- Graduation form -->
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {{ render_field(form.reason) }}
+                <div class="d-flex gap-2 mt-3">
+                    {{ form.submit(class="btn btn-success px-4") }}
+                    <a href="{{ url_for('hod.graduation_management') }}"
+                       class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

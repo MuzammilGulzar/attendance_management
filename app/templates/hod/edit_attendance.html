@@ -1,0 +1,135 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-12 col-md-7">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('hod.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('hod.search_attendance') }}">Attendance</a></li>
+            <li class="breadcrumb-item active">Edit Record</li>
+        </ol>
+    </nav>
+
+    {% if record %}
+    <!-- Current record summary -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+
+            <h5 class="fw-bold mb-3">
+                <i class="bi bi-pencil-square me-2 text-warning"></i>Edit Attendance Record
+            </h5>
+
+            <!-- Record details grid -->
+            <div class="row g-2 mb-4">
+                {% for label, value in [
+                    ('Student',  record.student.full_name),
+                    ('Roll No.', record.student.roll_number),
+                    ('Subject',  record.subject.name ~ ' (' ~ record.subject.code ~ ')'),
+                    ('Date',     record.date.strftime('%A, %d %B %Y')),
+                    ('Semester', 'Semester ' ~ record.semester),
+                    ('Marked By', record.marked_by.full_name),
+                ] %}
+                <div class="col-6">
+                    <div class="bg-light rounded px-3 py-2">
+                        <div class="text-muted small">{{ label }}</div>
+                        <div class="fw-semibold small">{{ value }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Current status -->
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span class="text-muted small">Current status:</span>
+                {% set color_map = {'present':'success','absent':'danger',
+                                    'leave':'warning','event':'info'} %}
+                <span class="badge bg-{{ color_map.get(record.status,'secondary') }}
+                    fs-6 {{ 'text-dark' if record.status in ('leave','event') else '' }}">
+                    {{ record.status | upper }}
+                </span>
+                {% if record.is_edited %}
+                <span class="badge bg-secondary">
+                    <i class="bi bi-pencil me-1"></i>Previously edited
+                </span>
+                {% endif %}
+            </div>
+
+            {% if record.is_edited %}
+            <!-- Previous edit info -->
+            <div class="alert alert-secondary border-0 small mb-4">
+                <div class="fw-semibold mb-1">Previous edit details:</div>
+                <div>Original status: <strong>{{ record.original_status }}</strong></div>
+                <div>Edited by: {{ record.edited_by.full_name if record.edited_by else '—' }}</div>
+                <div>Reason: {{ record.edit_reason }}</div>
+                <div>At: {{ record.edited_at.strftime('%d %b %Y, %H:%M') if record.edited_at else '—' }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Edit form -->
+            <form method="POST" novalidate>
+                <!-- CSRF token (WTForms-free, but still secure via @login_required + session) -->
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">New Status</label>
+                    <div class="d-flex gap-3 flex-wrap">
+                        {% for status, label, color in [
+                            ('present', 'Present', 'success'),
+                            ('absent',  'Absent',  'danger'),
+                            ('leave',   'Leave',   'warning'),
+                            ('event',   'Event / Duty', 'info'),
+                        ] %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio"
+                                   name="status"
+                                   id="status_{{ status }}"
+                                   value="{{ status }}"
+                                   {{ 'checked' if record.status == status }}>
+                            <label class="form-check-label text-{{ color }}
+                                          fw-semibold"
+                                   for="status_{{ status }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">
+                        Reason for Edit
+                        <span class="text-danger">*</span>
+                    </label>
+                    <textarea name="reason" rows="3"
+                              class="form-control"
+                              placeholder="e.g. Student submitted medical certificate for this date"
+                              required
+                              minlength="5"></textarea>
+                    <div class="form-text text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Required. This becomes a permanent audit record.
+                        Minimum 5 characters.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning px-4">
+                        <i class="bi bi-check-lg me-1"></i>Save Edit
+                    </button>
+                    <a href="{{ url_for('hod.search_attendance') }}"
+                       class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-danger">Record not found.</div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

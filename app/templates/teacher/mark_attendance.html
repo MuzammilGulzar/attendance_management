@@ -1,0 +1,269 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">
+            {{ subject.code }} — Attendance
+        </li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">📋 {{ subject.name }}</h4>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="badge bg-secondary font-monospace">{{ subject.code }}</span>
+            <span class="badge
+                {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                {{ subject.program_type }} · Semester {{ subject.semester }}
+            </span>
+            <span class="badge bg-light text-dark border">
+                {{ session.student_rows | length }} student(s)
+            </span>
+        </div>
+    </div>
+    <a href="{{ url_for('teacher.attendance_history', subject_id=subject.id) }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-clock-history me-1"></i>History
+    </a>
+</div>
+
+<!-- Date picker -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2 px-3">
+        <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
+            <label class="form-label fw-semibold mb-0 small">
+                <i class="bi bi-calendar3 me-1"></i>Marking for:
+            </label>
+            <select name="date" class="form-select form-select-sm w-auto"
+                    onchange="this.form.submit()">
+                {% for d, label in session.backfill_dates %}
+                <option value="{{ d.isoformat() }}"
+                    {{ 'selected' if d == mark_date }}>
+                    {{ label }} ({{ d.strftime('%d %b') }})
+                </option>
+                {% endfor %}
+            </select>
+            <span class="text-muted small">
+                You can mark attendance up to 7 days in the past.
+            </span>
+        </form>
+    </div>
+</div>
+
+{% if session.already_marked %}
+<!-- Already marked banner -->
+<div class="alert alert-info border-0 mb-3">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Attendance for {{ mark_date.strftime('%d %b %Y') }} has already been marked.</strong>
+    This is a read-only view. Contact your HOD if any changes are needed.
+</div>
+{% endif %}
+
+<!-- Attendance form -->
+<div class="card border-0 shadow-sm">
+    <!-- Quick-select header -->
+    {% if not session.already_marked %}
+    <div class="card-header bg-white py-2 px-3 border-bottom">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="small fw-semibold text-muted">Mark all as:</span>
+            {% for status in session.valid_statuses %}
+            <button type="button"
+                    class="btn btn-sm btn-outline-{{ session.status_colors[status] }}"
+                    onclick="markAll('{{ status }}')">
+                {{ session.status_labels[status] }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" id="attendanceForm">
+        <input type="hidden" name="mark_date" value="{{ mark_date.isoformat() }}">
+        {{ '' }}  {# CSRF token would go here via form.hidden_tag() if using WTForms #}
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>Roll Number</th>
+                        <th>Name</th>
+                        <th>Attendance %</th>
+                        <th>Status</th>
+                        {% if session.already_marked %}
+                        <th>Marked by</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in session.student_rows %}
+                {% set student = row.student %}
+                <tr class="{{ 'table-warning' if row.current_status == 'absent'
+                               else 'table-success' if row.current_status == 'present'
+                               else '' }}
+                             att-row"
+                    data-status="{{ row.current_status }}">
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td class="font-monospace small">{{ student.roll_number }}</td>
+                    <td class="fw-semibold">{{ student.full_name }}</td>
+                    <td>
+                        {% set overall_pct = student.attendance_percentage %}
+                        <span class="small fw-semibold
+                            {{ 'text-danger' if overall_pct < 75
+                               else 'text-warning' if overall_pct < 85
+                               else 'text-success' }}">
+                            {{ overall_pct }}%
+                        </span>
+                        {% if overall_pct < 75 and overall_pct > 0 %}
+                        <span class="badge bg-danger ms-1 small">Low</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if session.already_marked %}
+                        <!-- Read-only view -->
+                        <span class="badge bg-{{ session.status_colors[row.current_status] }}
+                                          {{ 'text-dark' if row.current_status in ('leave','event') else '' }}">
+                            {{ session.status_labels[row.current_status] }}
+                        </span>
+                        {% if row.existing_record and row.existing_record.is_edited %}
+                        <span class="badge bg-secondary ms-1 small" title="Edited by HOD">
+                            <i class="bi bi-pencil"></i> Edited
+                        </span>
+                        {% endif %}
+                        {% else %}
+                        <!-- Editable radio buttons -->
+                        <div class="d-flex gap-2 flex-wrap status-group"
+                             id="group_{{ student.id }}">
+                            {% for status in session.valid_statuses %}
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input status-radio"
+                                       type="radio"
+                                       name="status_{{ student.id }}"
+                                       id="s{{ student.id }}_{{ status }}"
+                                       value="{{ status }}"
+                                       {{ 'checked' if row.current_status == status }}
+                                       onchange="updateRowColor('{{ student.id }}', '{{ status }}')"
+                                       >
+                                <label class="form-check-label small text-{{ session.status_colors[status] }}"
+                                       for="s{{ student.id }}_{{ status }}">
+                                    {{ session.status_labels[status] }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    {% if session.already_marked %}
+                    <td class="small text-muted">
+                        {% if row.existing_record %}
+                            {{ row.existing_record.marked_by.full_name }}
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        No students enrolled in this semester/program for this subject.
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Submit bar (only shown if not already marked) -->
+        {% if not session.already_marked and session.student_rows %}
+        <div class="card-footer bg-white d-flex justify-content-between
+                    align-items-center py-3 px-4">
+            <span class="small text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                Once submitted, only the HOD can edit this attendance.
+            </span>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('teacher.dashboard') }}"
+                   class="btn btn-outline-secondary btn-sm">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-sm px-4"
+                        onclick="return confirmSubmit()">
+                    <i class="bi bi-check-lg me-1"></i>
+                    Submit Attendance
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Status legend -->
+<div class="card border-0 bg-light mt-3">
+    <div class="card-body py-2 px-3 small text-muted">
+        <strong>Status guide:</strong>
+        <span class="ms-2 text-success">Present</span> — attended class ·
+        <span class="ms-2 text-danger">Absent</span> — did not attend ·
+        <span class="ms-2 text-warning">Leave</span> — authorised absence (excluded from % calc) ·
+        <span class="ms-2 text-info">Event</span> — on official duty (excluded from % calc)
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mark ALL students with the same status (quick-fill)
+function markAll(status) {
+    document.querySelectorAll('.status-radio').forEach(radio => {
+        if (radio.value === status) {
+            radio.checked = true;
+            const studentId = radio.name.split('_')[1];
+            updateRowColor(studentId, status);
+        }
+    });
+}
+
+// Color-code each row based on selected status
+function updateRowColor(studentId, status) {
+    const row = document.querySelector(`[data-status]`);
+    // Find the row containing this student's radio group
+    const group = document.getElementById('group_' + studentId);
+    if (!group) return;
+    const tr = group.closest('tr');
+    if (!tr) return;
+
+    tr.classList.remove('table-success','table-danger','table-warning','table-info');
+    const colorMap = {
+        'present': 'table-success',
+        'absent' : 'table-danger',
+        'leave'  : 'table-warning',
+        'event'  : 'table-info',
+    };
+    if (colorMap[status]) tr.classList.add(colorMap[status]);
+}
+
+// Confirm before submitting
+function confirmSubmit() {
+    const total   = document.querySelectorAll('tbody tr').length;
+    const absent  = document.querySelectorAll(
+        'input[type=radio][value=absent]:checked').length;
+    if (absent > 0) {
+        return confirm(
+            `${absent} student(s) will be marked Absent. Confirm?`
+        );
+    }
+    return true;
+}
+
+// Initialise row colors on page load
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input[type=radio]:checked').forEach(radio => {
+        const studentId = radio.name.split('_')[1];
+        updateRowColor(studentId, radio.value);
+    });
+});
+</script>
+{% endblock %}

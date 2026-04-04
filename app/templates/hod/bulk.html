@@ -1,0 +1,127 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_select, render_field %}
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-12 col-md-7">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('hod.graduation_management') }}">Graduation</a></li>
+            <li class="breadcrumb-item active">Bulk Graduate</li>
+        </ol>
+    </nav>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+
+            <h4 class="fw-bold mb-1">
+                <i class="bi bi-mortarboard me-2 text-warning"></i>
+                Bulk Graduation
+            </h4>
+            <p class="text-muted small mb-4">
+                Graduate an entire batch at once. All active students at the
+                selected semester will be graduated together.
+            </p>
+
+            <form method="POST" novalidate id="bulkForm">
+                {{ form.hidden_tag() }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">{{ render_select(form.program_type) }}</div>
+                    <div class="col-md-6">{{ render_select(form.semester) }}</div>
+                </div>
+
+                {{ render_field(form.reason) }}
+
+                <div class="alert alert-danger border-0 small mb-3">
+                    <i class="bi bi-exclamation-octagon me-1"></i>
+                    <strong>This action is irreversible.</strong>
+                    ALL matching students will be graduated and their
+                    logins disabled permanently.
+                </div>
+
+                {{ form.submit(class="btn btn-warning px-4") }}
+            </form>
+        </div>
+    </div>
+
+    <!-- Result card -->
+    {% if result %}
+    <div class="card border-0 shadow-sm
+                {{ 'border-success' if result.graduated > 0 else 'border-info' }}">
+        <div class="card-header
+                    {{ 'bg-success text-white' if result.graduated > 0 else 'bg-info text-dark' }}
+                    py-3">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-check-circle me-2"></i>Graduation Result
+            </h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3 mb-3 text-center">
+                <div class="col-6">
+                    <div class="fs-2 fw-bold text-success">{{ result.graduated }}</div>
+                    <div class="small text-muted">
+                        Graduated from {{ result.program_type }}
+                        Sem {{ result.semester }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="fs-2 fw-bold text-secondary">{{ result.skipped }}</div>
+                    <div class="small text-muted">Skipped</div>
+                </div>
+            </div>
+
+            {% if result.graduated_names %}
+            <p class="small fw-semibold mb-1 text-success">Graduated:</p>
+            <ul class="small text-success mb-3">
+                {% for name in result.graduated_names %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if result.skipped_names %}
+            <p class="small fw-semibold mb-1 text-muted">Skipped:</p>
+            <ul class="small text-muted">
+                {% for name in result.skipped_names %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/*
+ * When program type changes, update the available graduation semesters.
+ * UG: Semester 6 and 8 are valid.
+ * PG: Only Semester 4 is valid.
+ */
+const semOptions = {
+    'UG': [
+        {value: 6, label: 'Semester 6 (early / lateral exit)'},
+        {value: 8, label: 'Semester 8 (full programme)'}
+    ],
+    'PG': [
+        {value: 4, label: 'Semester 4 (full programme)'}
+    ]
+};
+
+document.querySelector('[name="program_type"]').addEventListener('change', function() {
+    const semSelect = document.querySelector('[name="semester"]');
+    const options   = semOptions[this.value] || [];
+
+    semSelect.innerHTML = options
+        .map(o => `<option value="${o.value}">${o.label}</option>`)
+        .join('');
+});
+</script>
+{% endblock %}

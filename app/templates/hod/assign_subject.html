@@ -1,0 +1,22 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_select %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-4"><i class="bi bi-link-45deg me-2"></i>Assign Subject to Teacher</h4>
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                {{ render_select(form.teacher_id) }}
+                {{ render_select(form.subject_id) }}
+                <div class="d-flex gap-2 mt-3">
+                    {{ form.submit(class="btn btn-primary") }}
+                    <a href="{{ url_for('hod.list_teachers') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

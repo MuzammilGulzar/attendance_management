@@ -1,0 +1,46 @@
+{#
+    Reusable macros for rendering WTForms fields cleanly.
+    Usage:
+      {% from "shared/form_field.html" import render_field, render_select %}
+      {{ render_field(form.email) }}
+      {{ render_field(form.name, placeholder="Enter name") }}
+  #}
+  
+  {% macro render_field(field, placeholder="") %}
+  <div class="mb-3">
+      {{ field.label(class="form-label fw-semibold") }}
+      {{ field(
+          class="form-control" + (" is-invalid" if field.errors else ""),
+          placeholder=placeholder
+      ) }}
+      {% for error in field.errors %}
+          <div class="invalid-feedback d-block">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+          </div>
+      {% endfor %}
+  </div>
+  {% endmacro %}
+  
+  {% macro render_select(field) %}
+  <div class="mb-3">
+      {{ field.label(class="form-label fw-semibold") }}
+      {{ field(class="form-select" + (" is-invalid" if field.errors else "")) }}
+      {% for error in field.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+  </div>
+  {% endmacro %}
+  
+  {% macro render_password(field, placeholder="") %}
+  <div class="mb-3">
+      {{ field.label(class="form-label fw-semibold") }}
+      {{ field(
+          class="form-control" + (" is-invalid" if field.errors else ""),
+          placeholder=placeholder
+      ) }}
+      {% for error in field.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+  </div>
+  {% endmacro %}
+  

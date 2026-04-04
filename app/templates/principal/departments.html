@@ -1,0 +1,94 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">🏢 Departments</h3>
+        <p class="text-muted small mb-0">{{ departments|length }} active department(s)</p>
+    </div>
+    <a href="{{ url_for('principal.create_department_view') }}"
+       class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>New Department
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Program</th>
+                    <th>HOD</th>
+                    <th>Students</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td class="fw-semibold">{{ dept.name }}</td>
+                    <td>
+                        <span class="badge bg-secondary">{{ dept.code }}</span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if dept.program_type == 'UG' %}bg-primary
+                            {% elif dept.program_type == 'PG' %}bg-warning text-dark
+                            {% else %}bg-info text-dark{% endif %}">
+                            {{ dept.program_type }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if dept.hod %}
+                            <i class="bi bi-person-check text-success me-1"></i>
+                            {{ dept.hod.full_name }}
+                        {% else %}
+                            <span class="text-danger small">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Not assigned
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark">
+                            {{ dept.total_students }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('principal.edit_department', dept_id=dept.id) }}"
+                               class="btn btn-sm btn-outline-secondary"
+                               title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <!-- Deactivate: confirm before submitting -->
+                            <form method="POST"
+                                  action="{{ url_for('principal.deactivate_department_view', dept_id=dept.id) }}"
+                                  onsubmit="return confirm('Deactivate {{ dept.name }}? This cannot be undone while students are enrolled.')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        title="Deactivate">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-building display-6 d-block mb-2"></i>
+                        No departments created yet.<br>
+                        <a href="{{ url_for('principal.create_department_view') }}">
+                            Create your first department
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
