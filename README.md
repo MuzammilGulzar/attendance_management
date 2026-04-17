@@ -1,31 +1,51 @@
-# Attendance Management system
-A web-based application built using Python Flask to automate and streamline attendance tracking for educational institutions and organizations.
+# 📚 Attendance Management System
 
-# This system follows a role-based architecture with hierarchical control, ensuring secure and structured data management.
+A web-based **Attendance Management System** built using **Python (Flask)** and **HTML/CSS**, designed to streamline attendance tracking and academic management in colleges.
 
-# 🚀 Features
-🔐 Role-based authentication system
-🏫 Department and semester management
-👨‍🏫 Teacher and subject allocation
-📊 Automatic attendance tracking and percentage calculation
-👨‍🎓 Student dashboard for attendance viewing
-✅ Secure and structured workflow
-🧑‍💼 User Roles & Functionalities
-# 👑 Principal (Super Admin)
-Creates and manages Departments
-Appoints HODs (Heads of Departments)
-Has overall control of the system
-# 🧑‍💻 HOD (Head of Department)
-Creates and manages Teachers
-Assigns Subjects to teachers
-Enrolls Students
-Assigns students to Semesters
-Allocates students to respective teachers
-# 👨‍🏫 Teacher
-Views assigned subjects and students
-Marks Attendance
-Updates attendance records
-# 👨‍🎓 Student
-Can view attendance
-Tracks their attendance percentage
-No permission to modify data
+---
+
+## 🚀 Features
+
+- 🔐 Role-based authentication system  
+- 🏫 Department and semester management  
+- 👨‍🏫 Teacher and subject allocation  
+- 📊 Automatic attendance tracking & percentage calculation  
+- 👨‍🎓 Student dashboard for attendance viewing  
+- ✅ Structured and secure workflow  
+
+---
+
+## 🧑‍💼 User Roles & Functionalities
+
+### 👑 Principal (Super Admin)
+- Creates and manages **Departments**
+- Appoints **HODs (Heads of Departments)**
+- Full system control
+
+---
+
+### 🧑‍💻 HOD (Head of Department)
+- Creates and manages **Teachers**
+- Assigns **Subjects** to teachers
+- Enrolls **Students**
+- Assigns students to **Semesters**
+- Allocates students to teachers
+
+---
+
+### 👨‍🏫 Teacher
+- Views assigned subjects and students
+- Marks attendance
+- Updates attendance records
+
+---
+
+### 👨‍🎓 Student
+- Views attendance records
+- Tracks attendance percentage
+- No permission to modify data
+
+---
+
+## 🔄 System Workflow
+
