@@ -51,18 +51,18 @@ A web-based **Attendance Management System** built using **Python (Flask)** and 
 Principal
 
 Creates Departments & HODs
-↓
+ →
 HOD
-↓
+ →
 Creates Teachers → Assigns Subjects
-↓
+ →
 Enrolls Students → Assigns Semester & Teacher
-↓
+ →
 Teacher
-↓
+ →
 Marks Attendance
-↓
+ →
 Student
-↓
+ →
 Views Attendance & Percentage
 
