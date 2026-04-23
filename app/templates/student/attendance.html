@@ -36,7 +36,7 @@
 {% if summary %}
 {% set overall = summary.overall %}
 
-<!-- Summary cards -->
+<!-- Summary stat cards -->
 <div class="row g-2 mb-4">
     {% for label, value, color in [
         ('Conducted', overall.conducted, 'primary'),
@@ -44,34 +44,43 @@
         ('Absent',    overall.absent,    'danger'),
         ('Leave',     overall.leave,     'warning'),
         ('Event',     overall.event,     'info'),
-        (overall.pct|string ~ '%', 'Overall', 'success' if overall.pct >= 75 else 'danger'),
     ] %}
     <div class="col">
-        <div class="card border-0 shadow-sm text-center h-100
-            {{ 'border-danger border-2' if label == 'Overall' and overall.pct < 75 else '' }}">
+        <div class="card border-0 shadow-sm text-center h-100">
             <div class="card-body py-2 px-1">
-                <div class="fw-bold text-{{ color }}"
-                     style="font-size:{% if label == (overall.pct|string ~ '%') %}1.1rem{% else %}1.2rem{% endif %}">
-                    {{ label }}
-                </div>
-                <div class="text-muted" style="font-size:.7rem">{{ value }}</div>
+                <div class="fw-bold fs-5 text-{{ color }}">{{ value }}</div>
+                <div class="text-muted" style="font-size:.7rem">{{ label }}</div>
             </div>
         </div>
     </div>
     {% endfor %}
+    <div class="col">
+        <div class="card border-0 shadow-sm text-center h-100
+            {{ 'border-danger border-2' if overall.pct < 75 else '' }}">
+            <div class="card-body py-2 px-1">
+                <div class="fw-bold fs-5
+                    {{ 'text-success' if overall.pct >= 75
+                       else 'text-warning' if overall.pct >= 60
+                       else 'text-danger' }}">
+                    {{ overall.pct }}%
+                </div>
+                <div class="text-muted" style="font-size:.7rem">Overall</div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Per-subject breakdown with record history -->
+<!-- Per-subject breakdown with collapsible record history -->
 {% for item in summary.subjects %}
 {% set subj = item.subject %}
 {% set subj_records = records_by_subject.get(subj.id, []) %}
 
 <div class="card border-0 shadow-sm mb-3
-    {{ 'border-start border-4 border-danger' if item.status == 'low'
+    {{ 'border-start border-4 border-danger'  if item.status == 'low'
        else 'border-start border-4 border-warning' if item.status == 'warning'
        else '' }}">
 
-    <!-- Subject header — clickable to expand/collapse records -->
+    <!-- Clickable header to expand/collapse the records table -->
     <div class="card-header bg-white py-2 px-3"
          style="cursor:pointer"
          onclick="toggleRecords('subj-{{ subj.id }}')">
@@ -81,7 +90,6 @@
                 <span class="badge bg-secondary ms-2 font-monospace">{{ subj.code }}</span>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <!-- Mini stats pills -->
                 <div class="d-flex gap-1 small">
                     <span class="badge bg-success">{{ item.present }}P</span>
                     <span class="badge bg-danger">{{ item.absent }}A</span>
@@ -94,18 +102,19 @@
                        else 'text-danger' }}">
                     {{ item.pct }}%
                 </span>
-                <i class="bi bi-chevron-down text-muted" id="icon-subj-{{ subj.id }}"></i>
+                <i class="bi bi-chevron-down text-muted"
+                   id="icon-subj-{{ subj.id }}"></i>
             </div>
         </div>
-        <!-- Progress bar -->
+        <!-- Progress bar — width must be plain number%, no extra quotes -->
         <div class="progress mt-1" style="height:3px">
             <div class="progress-bar
                 bg-{{ 'success' if item.pct >= 75 else 'warning' if item.pct >= 60 else 'danger' }}"
-                 style="width:'{{ item.pct }}%'"></div>
+                 style="width: {{ item.pct }}%"></div>
         </div>
     </div>
 
-    <!-- Record history (collapsed by default) -->
+    <!-- Record list — hidden by default, shown on click -->
     <div id="subj-{{ subj.id }}" style="display:none">
         {% if subj_records %}
         <div class="table-responsive">
@@ -123,12 +132,8 @@
                 {% set color_map = {'present':'success','absent':'danger',
                                     'leave':'warning','event':'info'} %}
                 <tr>
-                    <td class="ps-3 small">
-                        {{ rec.date.strftime('%d %b %Y') }}
-                    </td>
-                    <td class="small text-muted">
-                        {{ rec.date.strftime('%a') }}
-                    </td>
+                    <td class="ps-3 small">{{ rec.date.strftime('%d %b %Y') }}</td>
+                    <td class="small text-muted">{{ rec.date.strftime('%a') }}</td>
                     <td>
                         <span class="badge bg-{{ color_map.get(rec.status,'secondary') }}
                             {{ 'text-dark' if rec.status in ('leave','event') else '' }}">
@@ -136,16 +141,13 @@
                         </span>
                         {% if rec.is_edited %}
                         <span class="badge bg-light text-dark border ms-1"
-                              style="font-size:.6rem"
-                              title="Edited by HOD">
+                              style="font-size:.6rem" title="Edited by HOD">
                             <i class="bi bi-pencil"></i>
                         </span>
                         {% endif %}
                     </td>
                     <td class="small text-muted">
-                        {% if rec.is_edited %}
-                        HOD edit: {{ rec.edit_reason }}
-                        {% endif %}
+                        {% if rec.is_edited %}HOD edit: {{ rec.edit_reason }}{% endif %}
                     </td>
                 </tr>
                 {% endfor %}

@@ -1,0 +1,236 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a>
+        </li>
+        <li class="breadcrumb-item active">QR Attendance — {{ subject.code }}</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+
+        <!-- Subject header -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">📱 QR Attendance</h4>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-secondary font-monospace">{{ subject.code }}</span>
+                    <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                        {{ subject.program_type }} · Sem {{ subject.semester }}
+                    </span>
+                    <span class="badge bg-light text-dark border">{{ subject.name }}</span>
+                </div>
+            </div>
+
+            <!--
+            CANCEL BUTTON — must be a POST form, NOT a link.
+            Using a form with method="POST" is intentional:
+            a plain <a href> would be a GET request which is wrong
+            for a state-changing action (it could be triggered by
+            browser prefetch or accidentally).
+        -->
+            <!-- correcting bad requrest -->
+            <form method="POST" action="{{ url_for('teacher.cancel_qr', session_id=session.session_id) }}"
+                onsubmit="return confirm('Cancel this QR session? Students will no longer be able to scan it.')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-x-circle me-1"></i>Cancel QR
+                </button>
+            </form>
+        </div>
+
+        <!-- Main QR card -->
+        <div class="card border-0 shadow text-center" id="qrCard">
+            <div class="card-body p-4">
+
+                <!-- Status banner — turns red when expired -->
+                <div id="statusBanner" class="alert alert-success border-0 py-2 mb-3">
+                    <i class="bi bi-check-circle me-1"></i>
+                    <strong>Active</strong> — students can scan now
+                </div>
+
+                <!-- QR Image
+                 session.image_path = 'qr/<session_id>.png'
+                 url_for builds:     /static/qr/<session_id>.png
+                 Flask serves it directly from app/static/
+            -->
+                <div class="mb-3" id="qrImageWrapper">
+                    <img src="{{ url_for('static', filename=session.image_path) }}" alt="QR Code for {{ subject.code }}"
+                        class="img-fluid rounded" style="max-width: 260px; width: 100%;" id="qrImage">
+                </div>
+
+                <!-- Countdown timer -->
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Expires in</div>
+                    <div id="countdown" class="display-6 fw-bold text-success font-monospace"
+                        style="letter-spacing: 2px;">
+                        {{ '%02d:%02d' | format(time_remaining // 60, time_remaining % 60) }}
+                    </div>
+                    <div class="text-muted small">(mm:ss)</div>
+                </div>
+
+                <!-- Live scan count -->
+                <div class="d-flex justify-content-center gap-4 mt-3">
+                    <div class="text-center">
+                        <div class="fs-3 fw-bold text-success" id="scanCount">
+                            {{ session.scan_count }}
+                        </div>
+                        <div class="text-muted small">Students Scanned</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fs-3 fw-bold text-muted">
+                            {{ session.expires_at.strftime('%H:%M') }}
+                        </div>
+                        <div class="text-muted small">Expires At</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Session ID footer (truncated for display) -->
+            <div class="card-footer bg-white py-2 border-top">
+                <div class="small text-muted font-monospace text-truncate px-2" title="{{ session.session_id }}">
+                    Session: {{ session.session_id[:16] }}…
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card border-0 bg-light mt-3">
+            <div class="card-body py-3 px-4">
+                <p class="small fw-semibold mb-2">
+                    <i class="bi bi-info-circle me-1"></i>How to use
+                </p>
+                <ol class="small text-muted mb-0 ps-3">
+                    <li>Show this QR code on the projector or your phone screen.</li>
+                    <li>Students scan it with their phone camera.</li>
+                    <li>They must be <strong>logged in</strong> to their student account.</li>
+                    <li>Attendance is marked <strong>present</strong> automatically.</li>
+                    <li>QR expires in {{ (session.expires_at - session.created_at).seconds // 60 }} minutes — generate a
+                        new one if needed.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Generate new QR button (useful after expiry) -->
+        <div class="text-center mt-3">
+            <a href="{{ url_for('teacher.generate_qr', subject_id=subject.id) }}" class="btn btn-outline-primary btn-sm"
+                id="newQrBtn" style="display:none">
+                <i class="bi bi-arrow-clockwise me-1"></i>Generate New QR
+            </a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    /*
+     * LIVE UPDATES
+     * ────────────
+     * Two timers run simultaneously:
+     *   1. Local countdown — ticks every 1 second (smooth MM:SS display)
+     *   2. Server poll     — every 5 seconds via AJAX to sync scan_count
+     *                        and correct any clock drift
+     */
+
+    const STATUS_URL = "{{ url_for('teacher.qr_status', session_id=session.session_id) }}";
+    let localSecsLeft = {{ time_remaining }};
+
+
+    // ── 1. Local countdown (1-second interval) ─────────────────────────
+    function tickCountdown() {
+        if (localSecsLeft <= 0) {
+            showExpired();
+            return;
+        }
+
+        const mins = Math.floor(localSecsLeft / 60);
+        const secs = localSecsLeft % 60;
+        const display = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+        const el = document.getElementById('countdown');
+        if (el) {
+            el.textContent = display;
+            // Colour shift: green → yellow (last 60s) → red (last 30s)
+            el.className = 'display-6 fw-bold font-monospace ';
+            if (localSecsLeft <= 30) el.classList.add('text-danger');
+            else if (localSecsLeft <= 60) el.classList.add('text-warning');
+            else el.classList.add('text-success');
+        }
+
+        localSecsLeft--;
+    }
+
+    const countdownTimer = setInterval(tickCountdown, 1000);
+    tickCountdown();   // run immediately on page load
+
+
+    // ── 2. Server poll (5-second interval) ────────────────────────────
+    async function pollStatus() {
+        try {
+            const resp = await fetch(STATUS_URL);
+            const data = await resp.json();
+
+            // Update scan count display
+            const countEl = document.getElementById('scanCount');
+            if (countEl) countEl.textContent = data.scan_count;
+
+            // Correct local clock drift
+            if (data.time_remaining > 0) {
+                localSecsLeft = data.time_remaining;
+            }
+
+            // If server says expired or cancelled → show expired state
+            if (!data.is_active || data.time_remaining <= 0) {
+                showExpired();
+                clearInterval(countdownTimer);
+                clearInterval(pollTimer);
+            }
+
+        } catch (err) {
+            // Network error — keep counting down locally
+            console.warn('QR status poll failed:', err);
+        }
+    }
+
+    const pollTimer = setInterval(pollStatus, 5000);
+
+
+    // ── Expired state ──────────────────────────────────────────────────
+    function showExpired() {
+        // Update status banner
+        const banner = document.getElementById('statusBanner');
+        if (banner) {
+            banner.className = 'alert alert-danger border-0 py-2 mb-3';
+            banner.innerHTML = '<i class="bi bi-x-circle me-1"></i>'
+                + '<strong>Expired</strong> — generate a new QR code';
+        }
+
+        // Grey out the QR image
+        const img = document.getElementById('qrImage');
+        if (img) {
+            img.style.filter = 'grayscale(100%) opacity(35%)';
+            img.style.cursor = 'not-allowed';
+        }
+
+        // Set countdown to 00:00
+        const cd = document.getElementById('countdown');
+        if (cd) {
+            cd.textContent = '00:00';
+            cd.className = 'display-6 fw-bold font-monospace text-danger';
+        }
+
+        // Show "Generate New QR" button
+        const btn = document.getElementById('newQrBtn');
+        if (btn) btn.style.display = 'inline-block';
+    }
+</script>
+{% endblock %}

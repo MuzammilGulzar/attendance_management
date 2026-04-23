@@ -1,0 +1,106 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">🔔 Notifications</h4>
+        <p class="text-muted small mb-0">
+            {% if unread_count > 0 %}{{ unread_count }} unread · {% endif %}
+            {{ notifications|length }} total
+        </p>
+    </div>
+    {% if unread_count > 0 %}
+    <form method="POST"
+          action="{{ url_for('teacher.mark_all_notifications_read') }}">
+        <button class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-check-all me-1"></i>Mark All Read
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+{% if notifications %}
+<div class="card border-0 shadow-sm">
+    {% for notif in notifications %}
+    {% set icon_map = {'danger':'exclamation-octagon-fill',
+                       'warning':'exclamation-triangle-fill',
+                       'success':'check-circle-fill',
+                       'info':'info-circle-fill'} %}
+    <div class="border-bottom px-4 py-3
+                {{ 'bg-light' if not notif.is_read }}"
+         id="notif-{{ notif.id }}">
+        <div class="d-flex gap-3 align-items-start">
+            <i class="bi bi-{{ icon_map.get(notif.type,'bell') }}
+               text-{{ notif.type }} fs-5 flex-shrink-0 mt-1"></i>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between gap-2">
+                    <span class="fw-semibold {{ 'fw-bold' if not notif.is_read }}
+                                 text-{{ notif.type }}">
+                        {{ notif.title }}
+                    </span>
+                    <div class="d-flex gap-2 flex-shrink-0">
+                        {% if not notif.is_read %}
+                        <span class="badge rounded-pill bg-{{ notif.type }}
+                            {{ 'text-dark' if notif.type in ('warning','info') }}"
+                              style="font-size:.6rem">NEW</span>
+                        {% endif %}
+                        <span class="small text-muted">
+                            {{ notif.created_at.strftime('%d %b, %H:%M') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="small mt-1 {{ 'text-muted' if notif.is_read }}">
+                    {{ notif.message }}
+                </div>
+                {% if notif.sent_by %}
+                <div class="small text-muted mt-1">
+                    <i class="bi bi-person me-1"></i>
+                    From: {{ notif.sent_by.full_name }}
+                </div>
+                {% endif %}
+                {% if not notif.is_read %}
+                <button class="btn btn-sm btn-outline-secondary mt-2"
+                        onclick="markTchRead({{ notif.id }}, this)">
+                    <i class="bi bi-check me-1"></i>Mark Read
+                </button>
+                {% else %}
+                <div class="small text-muted mt-1">
+                    <i class="bi bi-check-all me-1"></i>
+                    Read {{ notif.read_at.strftime('%d %b') if notif.read_at else '' }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-bell-slash display-5 d-block mb-3"></i>
+    No notifications yet.
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function markTchRead(notifId, btn) {
+    const resp = await fetch(`/teacher/notifications/${notifId}/read`, {
+        method: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    });
+    const data = await resp.json();
+    if (data.ok) {
+        document.getElementById(`notif-${notifId}`).classList.remove('bg-light');
+        btn.closest('div').innerHTML =
+            '<span class="small text-muted"><i class="bi bi-check-all me-1"></i>Just read</span>';
+        const badge = document.querySelector('.navbar .bi-bell')
+                          ?.closest('a')?.querySelector('.badge');
+        if (badge) {
+            const n = parseInt(badge.textContent)||0;
+            if (n<=1) badge.remove(); else badge.textContent = n-1;
+        }
+    }
+}
+</script>
+{% endblock %}

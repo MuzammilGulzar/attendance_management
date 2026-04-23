@@ -6,3 +6,5 @@ Flask-WTF==1.2.1
 python-dotenv==1.0.1
 Werkzeug==3.0.3
 email-validator==2.1.1
+qrcode[pil]==7.4.2
+Pillow==10.3.0

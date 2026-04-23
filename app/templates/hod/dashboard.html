@@ -10,10 +10,6 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url_for('hod.graduation_management') }}"
-           class="btn btn-outline-success btn-sm">
-           <i class="bi bi-mortarboard me-1"></i>Graduate
-        </a>
         <a href="{{ url_for('hod.create_teacher_view') }}"
            class="btn btn-outline-primary btn-sm">
             <i class="bi bi-person-plus me-1"></i>Add Teacher
@@ -26,6 +22,10 @@
            class="btn btn-warning btn-sm">
             <i class="bi bi-arrow-up-circle me-1"></i>Bulk Promote
         </a>
+        <a href="{{ url_for('hod.send_notification') }}"
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-send me-1"></i>Send Notification
+        </a>
     </div>
 </div>
 
@@ -37,7 +37,7 @@
         ('Active Students', stats.active_students, 'mortarboard',      'success'),
         ('Graduated',       stats.graduated,       'patch-check',      'secondary'),
     ] %}
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4">
         <div class="card border-0 shadow-sm text-center h-100">
             <div class="card-body py-3">
                 <div class="fs-3 text-{{ color }} mb-1">
@@ -79,12 +79,14 @@
 <!-- Quick links -->
 <div class="row g-3">
     {% for label, url, icon, color in [
-        ('Manage Teachers', url_for('hod.list_teachers'), 'person-badge', 'primary'),
-        ('Manage Subjects', url_for('hod.list_subjects'), 'book-half',    'info'),
-        ('View Students',   url_for('hod.list_students'), 'people',       'success'),
-        ('Bulk Promote',    url_for('hod.bulk_promote_view'), 'arrow-up-circle', 'warning'),
+        ('Manage Teachers',    url_for('hod.list_teachers'),     'person-badge',    'primary'),
+        ('Manage Subjects',    url_for('hod.list_subjects'),     'book-half',       'info'),
+        ('View Students',      url_for('hod.list_students'),     'people',          'success'),
+        ('Bulk Promote',       url_for('hod.bulk_promote_view'), 'arrow-up-circle', 'warning'),
+        ('Send Notification',  url_for('hod.send_notification'), 'send',            'primary'),
+        ('Sent History',       url_for('hod.sent_notifications'),'clock-history',   'secondary'),
     ] %}
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4">
         <a href="{{ url }}"
            class="card border-0 shadow-sm text-decoration-none h-100
                   text-{{ color }}">

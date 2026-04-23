@@ -96,6 +96,7 @@ from app import db
 from datetime import datetime
 
 
+
 # Association table — links Teachers to the Subjects they teach.
 # This is a MANY-TO-MANY relationship:
 #   One Teacher can teach many Subjects

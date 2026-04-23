@@ -1,0 +1,99 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">👨‍💼 HOD Dashboard</h3>
+        <p class="text-muted small mb-0">
+            {{ stats.dept_name }} ({{ stats.dept_code }})
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('hod.graduation_management') }}"
+           class="btn btn-outline-success btn-sm">
+           <i class="bi bi-mortarboard me-1"></i>Graduate
+        </a>
+        <a href="{{ url_for('hod.create_teacher_view') }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-person-plus me-1"></i>Add Teacher
+        </a>
+        <a href="{{ url_for('hod.create_student_view') }}"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-mortarboard me-1"></i>Enroll Student
+        </a>
+        <a href="{{ url_for('hod.bulk_promote_view') }}"
+           class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-up-circle me-1"></i>Bulk Promote
+        </a>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    {% for label, value, icon, color in [
+        ('Teachers',        stats.total_teachers,  'person-workspace', 'primary'),
+        ('Subjects',        stats.total_subjects,  'book',             'info'),
+        ('Active Students', stats.active_students, 'mortarboard',      'success'),
+        ('Graduated',       stats.graduated,       'patch-check',      'secondary'),
+    ] %}
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center h-100">
+            <div class="card-body py-3">
+                <div class="fs-3 text-{{ color }} mb-1">
+                    <i class="bi bi-{{ icon }}"></i>
+                </div>
+                <div class="fs-4 fw-bold">{{ value }}</div>
+                <div class="text-muted small">{{ label }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Semester-wise breakdown -->
+{% if stats.sem_breakdown %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between">
+        <h6 class="fw-bold mb-0"><i class="bi bi-bar-chart me-2"></i>Students by Semester</h6>
+        <a href="{{ url_for('hod.list_students') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            {% for item in stats.sem_breakdown %}
+            <a href="{{ url_for('hod.list_students',
+                        semester=item.semester,
+                        program_type=item.program_type) }}"
+               class="btn btn-outline-{{ 'primary' if item.program_type == 'UG' else 'warning' }} btn-sm">
+                {{ item.label }}
+                <span class="badge bg-{{ 'primary' if item.program_type == 'UG' else 'warning' }} text-{{ 'white' if item.program_type == 'UG' else 'dark' }} ms-1">
+                    {{ item.count }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick links -->
+<div class="row g-3">
+    {% for label, url, icon, color in [
+        ('Manage Teachers', url_for('hod.list_teachers'), 'person-badge', 'primary'),
+        ('Manage Subjects', url_for('hod.list_subjects'), 'book-half',    'info'),
+        ('View Students',   url_for('hod.list_students'), 'people',       'success'),
+        ('Bulk Promote',    url_for('hod.bulk_promote_view'), 'arrow-up-circle', 'warning'),
+    ] %}
+    <div class="col-6 col-md-3">
+        <a href="{{ url }}"
+           class="card border-0 shadow-sm text-decoration-none h-100
+                  text-{{ color }}">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-{{ icon }} fs-2 mb-2 d-block"></i>
+                <div class="small fw-semibold">{{ label }}</div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

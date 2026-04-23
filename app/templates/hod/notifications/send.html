@@ -1,0 +1,156 @@
+{% extends "shared/base.html" %}
+{% from "shared/form_field.html" import render_field, render_select %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">📣 Send Notification</h4>
+        <p class="text-muted small mb-0">
+            Compose a message for your department
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('hod.sent_notifications') }}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-send me-1"></i>Sent
+        </a>
+        <a href="{{ url_for('hod.notifications_inbox') }}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-inbox me-1"></i>Inbox
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-12 col-lg-8">
+<div class="card border-0 shadow-sm">
+<div class="card-body p-4">
+
+<form method="POST" novalidate id="notifForm">
+    {{ form.hidden_tag() }}
+
+    <!-- Target type selector -->
+    <div class="mb-4">
+        {{ form.target_type.label(class="form-label fw-semibold") }}
+        {{ form.target_type(class="form-select", id="targetType",
+                            onchange="updateTargetUI()") }}
+    </div>
+
+    <!-- Single recipient picker (shown for single_student / single_teacher) -->
+    <div id="singlePickerBlock" class="mb-3" style="display:none">
+        <label class="form-label fw-semibold">Recipient</label>
+        <select name="recipient_user_id" id="recipientSelect"
+                class="form-select">
+            <option value="-1">— select —</option>
+        </select>
+        <div class="form-text text-muted">
+            Loading list based on target type...
+        </div>
+    </div>
+
+    <!-- Semester broadcast block (shown for 'semester') -->
+    <div id="semesterBlock" class="mb-3" style="display:none">
+        <div class="row g-3">
+            <div class="col-md-6">{{ render_select(form.semester) }}</div>
+            <div class="col-md-6">{{ render_select(form.program_type) }}</div>
+        </div>
+    </div>
+
+    <!-- Broadcast info banners -->
+    <div id="allStudentsInfo" class="alert alert-info border-0 small mb-3"
+         style="display:none">
+        <i class="bi bi-megaphone me-1"></i>
+        This will send to <strong>all active students</strong>
+        in your department across all semesters.
+    </div>
+    <div id="allTeachersInfo" class="alert alert-info border-0 small mb-3"
+         style="display:none">
+        <i class="bi bi-megaphone me-1"></i>
+        This will send to <strong>all active teachers</strong>
+        in your department.
+    </div>
+
+    <hr class="my-3">
+
+    <!-- Message type -->
+    <div class="mb-3">
+        {{ form.notif_type.label(class="form-label fw-semibold") }}
+        <div class="d-flex gap-3 flex-wrap">
+            {% for value, label in [('info','Info'),('warning','Warning'),
+                                     ('success','Success'),('danger','Urgent')] %}
+            {% set colors = {'info':'info','warning':'warning',
+                             'success':'success','danger':'danger'} %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio"
+                       name="notif_type"
+                       id="type_{{ value }}"
+                       value="{{ value }}"
+                       {{ 'checked' if value == 'info' }}>
+                <label class="form-check-label text-{{ colors[value] }}
+                              fw-semibold"
+                       for="type_{{ value }}">
+                    {{ label }}
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {{ render_field(form.title) }}
+    {{ render_field(form.message) }}
+
+    <div class="d-flex gap-2 mt-4">
+        {{ form.submit(class="btn btn-primary px-4") }}
+        <a href="{{ url_for('hod.dashboard') }}"
+           class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+
+</div>
+</div>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const TARGET_URL = '{{ url_for("hod.get_recipients_json") }}';
+
+function updateTargetUI() {
+    const val = document.getElementById('targetType').value;
+
+    document.getElementById('singlePickerBlock').style.display  = 'none';
+    document.getElementById('semesterBlock').style.display      = 'none';
+    document.getElementById('allStudentsInfo').style.display    = 'none';
+    document.getElementById('allTeachersInfo').style.display    = 'none';
+
+    if (val === 'single_student' || val === 'single_teacher') {
+        document.getElementById('singlePickerBlock').style.display = 'block';
+        loadRecipients(val === 'single_student' ? 'student' : 'teacher');
+    } else if (val === 'semester') {
+        document.getElementById('semesterBlock').style.display = 'block';
+    } else if (val === 'all_students') {
+        document.getElementById('allStudentsInfo').style.display = 'block';
+    } else if (val === 'all_teachers') {
+        document.getElementById('allTeachersInfo').style.display = 'block';
+    }
+}
+
+async function loadRecipients(type) {
+    const select = document.getElementById('recipientSelect');
+    select.innerHTML = '<option value="-1">Loading...</option>';
+    try {
+        const resp = await fetch(`${TARGET_URL}?target=${type}`);
+        const data = await resp.json();
+        select.innerHTML = '<option value="-1">— select —</option>' +
+            data.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    } catch(e) {
+        select.innerHTML = '<option value="-1">Error loading list</option>';
+    }
+}
+
+// Run on page load in case form was re-submitted with errors
+updateTargetUI();
+</script>
+{% endblock %}

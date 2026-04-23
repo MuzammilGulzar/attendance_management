@@ -1,0 +1,103 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">📤 Sent Notifications</h4>
+        <p class="text-muted small mb-0">Messages you have sent</p>
+    </div>
+    <a href="{{ url_for('hod.send_notification') }}"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-send me-1"></i>Send New
+    </a>
+</div>
+
+<!-- Stats -->
+{% if summary %}
+<div class="row g-3 mb-4">
+    {% for label, value, color in [
+        ('Total Sent',   summary.total_sent,   'primary'),
+        ('Read',         summary.read_count,   'success'),
+        ('Unread',       summary.unread_count, 'warning'),
+    ] %}
+    <div class="col-4">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-2">
+                <div class="fs-4 fw-bold text-{{ color }}">{{ value }}</div>
+                <div class="text-muted small">{{ label }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if sent %}
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sent At</th>
+                    <th>Recipient</th>
+                    <th>Type</th>
+                    <th>Title</th>
+                    <th>Message</th>
+                    <th>Read?</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for notif in sent %}
+            {% set color_map = {'info':'info','warning':'warning',
+                                'success':'success','danger':'danger'} %}
+            <tr>
+                <td class="small text-muted">
+                    {{ notif.created_at.strftime('%d %b %Y %H:%M') }}
+                </td>
+                <td class="small fw-semibold">
+                    {{ notif.user.full_name }}
+                    <div class="text-muted" style="font-size:.7rem">
+                        {{ notif.user.role | title }}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-{{ color_map.get(notif.type,'secondary') }}
+                        {{ 'text-dark' if notif.type in ('warning','info') }}">
+                        {{ notif.type | title }}
+                    </span>
+                </td>
+                <td class="small">{{ notif.title }}</td>
+                <td class="small text-muted"
+                    style="max-width:200px;word-break:break-word">
+                    {{ notif.message[:80] }}{% if notif.message|length > 80 %}…{% endif %}
+                </td>
+                <td>
+                    {% if notif.is_read %}
+                    <span class="text-success small">
+                        <i class="bi bi-check-all me-1"></i>
+                        {{ notif.read_at.strftime('%d %b') if notif.read_at else 'Yes' }}
+                    </span>
+                    {% else %}
+                    <span class="text-warning small">
+                        <i class="bi bi-clock me-1"></i>Unread
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-send display-5 d-block mb-3"></i>
+    No notifications sent yet.
+    <br>
+    <a href="{{ url_for('hod.send_notification') }}"
+       class="btn btn-primary btn-sm mt-3">
+        Send Your First Notification
+    </a>
+</div>
+{% endif %}
+{% endblock %}

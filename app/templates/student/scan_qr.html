@@ -1,0 +1,119 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-4">
+  <div class="col-12 col-sm-10 col-md-6 col-lg-5">
+
+    {% if error %}
+    <!-- ── TOKEN ERROR ── -->
+    <div class="card border-0 shadow-sm text-center p-4 p-md-5">
+      <div style="font-size:3rem" class="mb-3">❌</div>
+      <h5 class="fw-bold text-danger mb-2">Cannot Mark Attendance</h5>
+      <p class="text-muted mb-4">{{ error }}</p>
+      <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+        Back to Dashboard
+      </a>
+    </div>
+
+    {% elif already_marked %}
+    <!-- ── ALREADY MARKED ── -->
+    <div class="card border-0 shadow-sm text-center p-4 p-md-5">
+      <div style="font-size:3rem" class="mb-3">ℹ️</div>
+      <h5 class="fw-bold text-info mb-2">Already Recorded</h5>
+      <p class="text-muted mb-4">
+        Your attendance for <strong>{{ subject.name }}</strong>
+        on <strong>{{ attendance_date.strftime('%d %b %Y') }}</strong>
+        is already marked.
+      </p>
+      <a href="{{ url_for('student.dashboard') }}" class="btn btn-primary">
+        Back to Dashboard
+      </a>
+    </div>
+
+    {% else %}
+    <!-- ── MAIN FORM ── -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+
+        <!-- Subject banner -->
+        <div class="alert alert-primary border-0 mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <span style="font-size:2.2rem">📚</span>
+            <div>
+              <div class="fw-bold fs-5 mb-0">{{ subject.name }}</div>
+              <div class="small mt-1">
+                <span class="badge bg-primary font-monospace">{{ subject.code }}</span>
+                <span class="ms-1 text-muted">Semester {{ subject.semester }}</span>
+                <span class="mx-1 text-muted">·</span>
+                <span class="text-muted">{{ attendance_date.strftime('%d %b %Y') }}</span>
+              </div>
+              <div class="small text-muted mt-1">
+                <i class="bi bi-person-badge me-1"></i>{{ teacher.full_name }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="fw-semibold mb-1">Confirm your identity</h6>
+        <p class="text-muted small mb-3">
+          Enter your roll number to mark yourself
+          <strong class="text-success">Present</strong> for this class.
+        </p>
+
+        <form method="POST" action="{{ url_for('student.scan_qr', token=token) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-4">
+            <label for="roll_number" class="form-label fw-semibold">
+              Roll Number
+            </label>
+            <input
+              type="text"
+              id="roll_number"
+              name="roll_number"
+              class="form-control form-control-lg font-monospace text-center text-uppercase"
+              placeholder="e.g. CS2201001"
+              value="{{ student.roll_number }}"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              required
+              autofocus
+            >
+            <div class="form-text">
+              Your roll number is pre-filled. Confirm it matches your ID card.
+            </div>
+          </div>
+
+          <!-- Flash messages (e.g. wrong roll number) -->
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} py-2 small mb-3">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ message }}
+              </div>
+            {% endfor %}
+          {% endwith %}
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success btn-lg fw-semibold">
+              <i class="bi bi-check2-circle me-2"></i>Mark Me Present
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      <div class="card-footer bg-light border-0 text-center py-2">
+        <span class="small text-muted">
+          Signed in as <strong>{{ current_user.full_name }}</strong>
+          &nbsp;·&nbsp;
+          <a href="{{ url_for('student.dashboard') }}" class="text-muted">Dashboard</a>
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

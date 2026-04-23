@@ -1,0 +1,151 @@
+ {% extends "shared/base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-4">
+<div class="col-12 col-sm-10 col-md-7 col-lg-5">
+
+    <div class="card border-0 shadow text-center">
+        <div class="card-body p-5">
+
+            <!-- Icon -->
+            <div class="mb-3">
+                <i class="bi bi-{{ icon }} text-{{ color }}"
+                   style="font-size: 4rem;"></i>
+            </div>
+
+            <!-- Heading -->
+            <h4 class="fw-bold mb-3 text-{{ color }}">
+                {{ heading }}
+            </h4>
+
+            <!-- Message -->
+            <p class="text-muted mb-4">
+                {{ message | safe }}
+            </p>
+
+            <!-- Subject badge (when available) -->
+            {% if subject %}
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <span class="badge bg-secondary font-monospace">
+                    {{ subject.code }}
+                </span>
+                <span class="badge bg-light text-dark border">
+                    {{ subject.name }}
+                </span>
+                <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                    {{ subject.program_type }} · Sem {{ subject.semester }}
+                </span>
+            </div>
+            {% endif %}
+
+            <!-- Student info (on success) -->
+            {% if student and success %}
+            <div class="bg-light rounded p-3 mb-4 text-start small">
+                <div class="text-muted mb-1">Marked for:</div>
+                <div class="fw-semibold">{{ student.full_name }}</div>
+                <div class="text-muted font-monospace">{{ student.roll_number }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Action buttons -->
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('student.dashboard') }}"
+                   class="btn btn-{{ color }}">
+                    <i class="bi bi-house me-1"></i>Go to My Dashboard
+                </a>
+                {% if success %}
+                <a href="{{ url_for('student.view_attendance', student_id=student.id) }}"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-list-ul me-1"></i>View My Attendance
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Footer note -->
+        <div class="card-footer bg-white border-top py-2">
+            <span class="small text-muted">
+                {% if success %}
+                <i class="bi bi-shield-check text-success me-1"></i>
+                Attendance recorded securely via QR scan.
+                {% else %}
+                <i class="bi bi-info-circle me-1"></i>
+                Contact your teacher if you believe this is an error.
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+</div>
+</div>
+
+{% endblock %}
+
+<!-- {% extends "shared/base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+  <div class="col-12 col-sm-9 col-md-6 col-lg-5">
+    <div class="card border-0 shadow-sm text-center p-4 p-md-5">
+
+      {% if success and not already_marked %}
+      {# ── SUCCESS ── #}
+      <div class="mb-3" style="font-size:3.5rem">✅</div>
+      <h4 class="fw-bold text-success mb-2">Attendance Marked!</h4>
+      <p class="text-muted mb-1">
+        You have been marked <strong class="text-success">Present</strong> for:
+      </p>
+      <div class="alert alert-success border-0 mt-3 mb-3 text-start">
+        <div class="row g-1 small">
+          <div class="col-5 fw-semibold text-muted">Subject</div>
+          <div class="col-7">{{ qr_session.subject.name }}</div>
+
+          <div class="col-5 fw-semibold text-muted">Code</div>
+          <div class="col-7 font-monospace">{{ qr_session.subject.code }}</div>
+
+          <div class="col-5 fw-semibold text-muted">Date</div>
+          <div class="col-7">{{ qr_session.attendance_date.strftime('%d %b %Y') }}</div>
+
+          <div class="col-5 fw-semibold text-muted">Semester</div>
+          <div class="col-7">Semester {{ qr_session.subject.semester }}</div>
+        </div>
+      </div>
+
+      {% elif already_marked %}
+      {# ── ALREADY MARKED ── #}
+      <div class="mb-3" style="font-size:3.5rem">ℹ️</div>
+      <h4 class="fw-bold text-info mb-2">Already Recorded</h4>
+      <p class="text-muted mb-1">
+        Your attendance for this class was already marked.
+      </p>
+      <div class="alert alert-info border-0 mt-3 mb-3 text-start">
+        <div class="row g-1 small">
+          <div class="col-5 fw-semibold text-muted">Subject</div>
+          <div class="col-7">{{ qr_session.subject.name }}</div>
+
+          <div class="col-5 fw-semibold text-muted">Date</div>
+          <div class="col-7">{{ qr_session.attendance_date.strftime('%d %b %Y') }}</div>
+        </div>
+      </div>
+
+      {% else %}
+      {# ── FAILURE ── #}
+      <div class="mb-3" style="font-size:3.5rem">❌</div>
+      <h4 class="fw-bold text-danger mb-2">Could Not Mark Attendance</h4>
+      <p class="text-muted">{{ message }}</p>
+      <p class="small text-muted mt-2">
+        Please ask your teacher to check the QR code or generate a new one.
+      </p>
+      {% endif %}
+
+      <a href="{{ url_for('student.dashboard') }}"
+         class="btn btn-primary mt-3 px-4">
+        <i class="bi bi-house me-1"></i> Back to Dashboard
+      </a>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %} -->

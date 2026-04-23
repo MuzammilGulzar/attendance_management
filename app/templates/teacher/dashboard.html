@@ -21,12 +21,12 @@
 <!-- Quick Stats -->
 <div class="row g-3 mb-4">
     {% set total_subjects = data.subjects_data | length %}
-    {% set marked_today   = data.subjects_data | selectattr('already_marked_today') | list | length %}
-    {% set pending        = total_subjects - marked_today %}
+    {% set marked_today = data.subjects_data | selectattr('already_marked_today') | list | length %}
+    {% set pending = total_subjects - marked_today %}
     {% for label, value, icon, color in [
-        ('Subjects',       total_subjects, 'book',           'primary'),
-        ('Marked Today',   marked_today,   'check-circle',   'success'),
-        ('Pending Today',  pending,        'clock-history',  'warning' if pending else 'secondary'),
+    ('Subjects', total_subjects, 'book', 'primary'),
+    ('Marked Today', marked_today, 'check-circle', 'success'),
+    ('Pending Today', pending, 'clock-history', 'warning' if pending else 'secondary'),
     ] %}
     <div class="col-4">
         <div class="card border-0 shadow-sm text-center h-100">
@@ -50,84 +50,85 @@
         </h6>
     </div>
     <div class="list-group list-group-flush">
-    {% for item in data.subjects_data %}
-    {% set subject = item.subject %}
-    <div class="list-group-item px-4 py-3">
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="flex-grow-1">
-                <!-- Subject name and badges -->
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="fw-bold">{{ subject.name }}</span>
-                    <span class="badge bg-secondary font-monospace small">{{ subject.code }}</span>
-                    <span class="badge
+        {% for item in data.subjects_data %}
+        {% set subject = item.subject %}
+        <div class="list-group-item px-4 py-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <!-- Subject name and badges -->
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="fw-bold">{{ subject.name }}</span>
+                        <span class="badge bg-secondary font-monospace small">{{ subject.code }}</span>
+                        <span class="badge
                         {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}
                         small">
-                        {{ subject.program_type }} · Sem {{ subject.semester }}
-                    </span>
-                </div>
-                <!-- Stats row -->
-                <div class="d-flex gap-3 small text-muted">
-                    <span>
-                        <i class="bi bi-people me-1"></i>
-                        {{ item.total_students }} student(s)
-                    </span>
-                    <span>
-                        <i class="bi bi-calendar3 me-1"></i>
-                        {{ item.total_conducted }} class(es) held
-                    </span>
-                    <span class="fw-semibold
+                            {{ subject.program_type }} · Sem {{ subject.semester }}
+                        </span>
+                    </div>
+                    <!-- Stats row -->
+                    <div class="d-flex gap-3 small text-muted">
+                        <span>
+                            <i class="bi bi-people me-1"></i>
+                            {{ item.total_students }} student(s)
+                        </span>
+                        <span>
+                            <i class="bi bi-calendar3 me-1"></i>
+                            {{ item.total_conducted }} class(es) held
+                        </span>
+                        <span class="fw-semibold
                         {{ 'text-success' if item.avg_attendance_pct >= 75
                            else 'text-warning' if item.avg_attendance_pct >= 60
                            else 'text-danger' }}">
-                        <i class="bi bi-graph-up me-1"></i>
-                        Avg {{ item.avg_attendance_pct }}%
-                    </span>
+                            <i class="bi bi-graph-up me-1"></i>
+                            Avg {{ item.avg_attendance_pct }}%
+                        </span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Today's status + action buttons -->
-            <div class="d-flex flex-column align-items-end gap-2 ms-3">
-                {% if item.already_marked_today %}
-                <span class="badge bg-success">
-                    <i class="bi bi-check-lg me-1"></i>Marked today
-                </span>
-                {% else %}
-                <span class="badge bg-warning text-dark">
-                    <i class="bi bi-clock me-1"></i>Not marked
-                </span>
-                {% endif %}
+                <!-- Today's status + action buttons -->
+                <div class="d-flex flex-column align-items-end gap-2 ms-3">
+                    {% if item.already_marked_today %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-lg me-1"></i>Marked today
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-clock me-1"></i>Not marked
+                    </span>
+                    {% endif %}
 
-                <div class="d-flex gap-1">
-                    <!-- Mark / Re-view attendance -->
-                    <a href="{{ url_for('teacher.mark_attendance_view',
-                                subject_id=subject.id) }}"
-                       class="btn btn-sm
+                    <div class="d-flex gap-1">
+                        <!-- Mark / Re-view attendance -->
+                        <a href="{{ url_for('teacher.mark_attendance_view',
+                                subject_id=subject.id) }}" class="btn btn-sm
                               {{ 'btn-outline-secondary' if item.already_marked_today
-                                 else 'btn-primary' }}"
-                       title="{{ 'View today\'s attendance' if item.already_marked_today
+                                 else 'btn-primary' }}" title="{{ 'View today\'s attendance' if item.already_marked_today
                                  else 'Mark attendance for today' }}">
-                        <i class="bi bi-{{ 'eye' if item.already_marked_today else 'pencil-square' }}"></i>
-                        {{ 'View' if item.already_marked_today else 'Mark' }}
-                    </a>
-                    <!-- History -->
-                    <a href="{{ url_for('teacher.attendance_history',
-                                subject_id=subject.id) }}"
-                       class="btn btn-sm btn-outline-secondary"
-                       title="Attendance history">
-                        <i class="bi bi-clock-history"></i>
-                    </a>
-                    <!-- Students -->
-                    <a href="{{ url_for('teacher.subject_students',
-                                subject_id=subject.id) }}"
-                       class="btn btn-sm btn-outline-secondary"
-                       title="View students">
-                        <i class="bi bi-people"></i>
-                    </a>
+                            <i class="bi bi-{{ 'eye' if item.already_marked_today else 'pencil-square' }}"></i>
+                            {{ 'View' if item.already_marked_today else 'Mark' }}
+                        </a>
+                        <!-- History -->
+                        <a href="{{ url_for('teacher.attendance_history',
+                                subject_id=subject.id) }}" class="btn btn-sm btn-outline-secondary"
+                            title="Attendance history">
+                            <i class="bi bi-clock-history"></i>
+                        </a>
+                        <!-- Students -->
+                        <a href="{{ url_for('teacher.subject_students',
+                                subject_id=subject.id) }}" class="btn btn-sm btn-outline-secondary"
+                            title="View students">
+                            <i class="bi bi-people"></i>
+                        </a>
+                        <!-- QR attendance -->
+                        <a href="{{ url_for('teacher.generate_qr', subject_id=subject.id) }}"
+                            class="btn btn-sm btn-outline-primary" title="QR Attendance">
+                            <i class="bi bi-qr-code"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    {% endfor %}
+        {% endfor %}
     </div>
 </div>
 
