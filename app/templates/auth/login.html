@@ -24,6 +24,8 @@
                 <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
                     {{ form.hidden_tag() }}
 
+                    <!-- fix for qr attendance -->
+                    <input type="hidden" name="next" value="{{ request.args.get('next') }}">
                     <!-- Email field -->
                     <div class="mb-3">
                         {{ form.email.label(class="form-label fw-semibold") }}

@@ -1,0 +1,195 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a>
+        </li>
+        <li class="breadcrumb-item active">QR Attendance — {{ subject.code }}</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">📱 QR Attendance</h4>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-secondary font-monospace">{{ subject.code }}</span>
+                    <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                        {{ subject.program_type }} · Sem {{ subject.semester }}
+                    </span>
+                    <span class="badge bg-light text-dark border">{{ subject.name }}</span>
+                </div>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('teacher.cancel_qr', session_id=session.session_id) }}"
+                  onsubmit="return confirm('Cancel this QR session?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    Cancel QR
+                </button>
+            </form>
+        </div>
+
+        <div class="card border-0 shadow text-center" id="qrCard">
+            <div class="card-body p-4">
+
+                <div id="statusBanner" class="alert alert-success border-0 py-2 mb-3">
+                    <strong>Active</strong> — students can scan now
+                </div>
+
+                <div class="mb-3">
+                    <img src="{{ url_for('static', filename=session.image_path) }}"
+                         class="img-fluid rounded"
+                         style="max-width:260px;"
+                         id="qrImage">
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small">Expires in</div>
+                    <div id="countdown" class="display-6 fw-bold text-success">
+                        {{ '%02d:%02d' | format(time_remaining // 60, time_remaining % 60) }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-4 mt-3">
+                    <div>
+                        <div class="fs-3 fw-bold text-success" id="scanCount">
+                            {{ session.scan_count }}
+                        </div>
+                        <div class="small text-muted">Scanned</div>
+                    </div>
+                    <div>
+                        <div class="fs-3 fw-bold text-muted">
+                            {{ session.expires_at.strftime('%H:%M') }}
+                        </div>
+                        <div class="small text-muted">Expires At</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card-footer small text-muted">
+                Session: {{ session.session_id[:16] }}…
+            </div>
+        </div>
+
+        <!-- LIVE ATTENDANCE -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <p>Present: <strong id="present-count">0</strong></p>
+                <p>Total: <strong id="total-count">0</strong></p>
+
+                <h6>Not Marked Yet:</h6>
+                <ul id="absent-list" class="small"></ul>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{{ url_for('teacher.generate_qr', subject_id=subject.id) }}"
+               class="btn btn-outline-primary btn-sm"
+               id="newQrBtn"
+               style="display:none">
+                Generate New QR
+            </a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+const STATUS_URL = "{{ url_for('teacher.qr_status', session_id=session.session_id) }}";
+const LIVE_URL   = "{{ url_for('teacher.qr_live', session_id=session.session_id) }}";
+
+let localSecsLeft = {{ time_remaining }};
+
+function tickCountdown() {
+    if (localSecsLeft <= 0) {
+        showExpired();
+        return;
+    }
+
+    const mins = Math.floor(localSecsLeft / 60);
+    const secs = localSecsLeft % 60;
+
+    document.getElementById('countdown').textContent =
+        String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+
+    localSecsLeft--;
+}
+
+setInterval(tickCountdown, 1000);
+
+async function pollAll() {
+    try {
+        // QR status
+        const res1 = await fetch(STATUS_URL);
+        const s = await res1.json();
+
+        document.getElementById("scanCount").innerText = s.scan_count;
+
+        if (s.time_remaining > 0) {
+            localSecsLeft = s.time_remaining;
+        }
+
+        if (!s.is_active || s.time_remaining <= 0) {
+            showExpired();
+        }
+
+        // Live attendance
+        const res2 = await fetch(LIVE_URL);
+        const data = await res2.json();
+
+        if (data.error) return;
+
+        document.getElementById("present-count").innerText = data.present;
+        document.getElementById("total-count").innerText = data.total;
+
+        let list = document.getElementById("absent-list");
+        list.innerHTML = "";
+
+        if (data.absent_list.length === 0) {
+            let li = document.createElement("li");
+            li.innerText = "All students marked ✅";
+            li.classList.add("text-success");
+            list.appendChild(li);
+            return;
+        }
+
+        data.absent_list.forEach(s => {
+            let li = document.createElement("li");
+            li.innerText = `${s.roll} - ${s.name}`;
+            list.appendChild(li);
+        });
+
+    } catch (err) {
+        console.warn("Polling failed", err);
+    }
+}
+
+setInterval(pollAll, 5000);
+
+function showExpired() {
+    document.getElementById('statusBanner').className =
+        'alert alert-danger';
+
+    document.getElementById('statusBanner').innerHTML =
+        '<strong>Expired</strong>';
+
+    document.getElementById('qrImage').style.filter =
+        'grayscale(100%) opacity(40%)';
+
+    document.getElementById('countdown').textContent = "00:00";
+
+    document.getElementById('newQrBtn').style.display = "inline-block";
+}
+
+</script>
+{% endblock %}

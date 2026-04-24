@@ -1,0 +1,227 @@
+{% extends "shared/base.html" %}
+
+{% block extra_css %}
+<style>
+  .result-card  { max-width: 480px; margin: 0 auto; }
+  .result-icon  { font-size: 4.5rem; line-height: 1; }
+  .detail-row   {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: #6c757d; }
+  .detail-value { font-weight: 600; text-align: right; }
+  .roll-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    color: #495057;
+  }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="result-card mt-2">
+
+  {#
+    payload dict keys (from mark_by_roll_number):
+      payload.already_marked  — bool
+      payload.student_name    — str
+      payload.roll_number     — str
+      payload.subject_name    — str
+      payload.subject_code    — str
+      payload.date            — date object
+      payload.status          — str (only present if already_marked=True)
+  #}
+
+  {% if payload.already_marked %}
+  {# ── ALREADY MARKED ─────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm text-center">
+    <div class="card-body p-5">
+
+      <div class="result-icon mb-3">
+        <i class="bi bi-patch-check text-info"></i>
+      </div>
+
+      <h4 class="fw-bold text-info mb-1">Already Recorded</h4>
+      <p class="text-muted mb-4">
+        Your attendance for today was already marked as
+        <strong class="text-{{ 'success' if payload.status == 'present'
+                                else 'danger' if payload.status == 'absent'
+                                else 'warning' }}">
+          {{ payload.status | upper }}
+        </strong>.
+        No duplicate entry was created.
+      </p>
+
+      {# Attendance detail card #}
+      <div class="card bg-light border-0 text-start mb-4">
+        <div class="card-body py-3 px-3">
+          <div class="detail-row">
+            <span class="detail-label">Student</span>
+            <span class="detail-value">{{ payload.student_name }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Roll Number</span>
+            <span class="detail-value roll-display">{{ payload.roll_number }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Subject</span>
+            <span class="detail-value">
+              {{ payload.subject_name }}
+              <span class="badge bg-secondary font-monospace ms-1"
+                    style="font-size:.65rem">{{ payload.subject_code }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Date</span>
+            <span class="detail-value">
+              {{ payload.date.strftime('%A, %d %b %Y') }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="badge bg-{{
+              'success' if payload.status == 'present'
+              else 'danger' if payload.status == 'absent'
+              else 'warning text-dark'
+            }}">{{ payload.status | upper }}</span>
+          </div>
+        </div>
+      </div>
+
+      {% if current_user.is_authenticated and current_user.is_student %}
+      <a href="{{ url_for('student.dashboard') }}"
+         class="btn btn-outline-primary w-100">
+        <i class="bi bi-house me-2"></i>Go to My Dashboard
+      </a>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {% else %}
+  {# ── FRESH SUCCESS ─────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm text-center">
+    <div class="card-body p-5">
+
+      {# Big animated checkmark #}
+      <div class="result-icon mb-3">
+        <i class="bi bi-check-circle-fill text-success"></i>
+      </div>
+
+      <h4 class="fw-bold text-success mb-1">Attendance Marked!</h4>
+      <p class="text-muted mb-4">
+        You have been marked <strong>PRESENT</strong> successfully.
+      </p>
+
+      {# Attendance detail card #}
+      <div class="card bg-light border-0 text-start mb-4">
+        <div class="card-body py-3 px-3">
+          <div class="detail-row">
+            <span class="detail-label">Student</span>
+            <span class="detail-value">{{ payload.student_name }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Roll Number</span>
+            <span class="detail-value roll-display">{{ payload.roll_number }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Subject</span>
+            <span class="detail-value">
+              {{ payload.subject_name }}
+              <span class="badge bg-secondary font-monospace ms-1"
+                    style="font-size:.65rem">{{ payload.subject_code }}</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Date</span>
+            <span class="detail-value">
+              {{ payload.date.strftime('%A, %d %b %Y') }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="badge bg-success">PRESENT</span>
+          </div>
+        </div>
+      </div>
+
+      {# Only show dashboard link if student is logged in on this device #}
+      {% if current_user.is_authenticated and current_user.is_student %}
+      <a href="{{ url_for('student.dashboard') }}"
+         class="btn btn-success w-100 mb-2">
+        <i class="bi bi-house me-2"></i>Go to My Dashboard
+      </a>
+      {% else %}
+      {# Student scanned without logging in — just confirm and close #}
+      <div class="alert alert-success border-0 py-2 small">
+        <i class="bi bi-check2 me-1"></i>
+        You can close this page. Your attendance has been saved.
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div class="card-footer bg-white border-top py-2 text-center">
+      <span class="small text-muted">
+        <i class="bi bi-shield-check text-success me-1"></i>
+        Recorded at {{ payload.date.strftime('%d %b %Y') }} via QR scan
+      </span>
+    </div>
+  </div>
+
+  {# Confetti burst — small celebratory touch on success #}
+  <script>
+  /*
+   * Simple CSS confetti using emoji — no external library needed.
+   * Creates 12 small emoji elements that fall and fade out.
+   * Runs once, then cleans itself up.
+   */
+  (function() {
+    const emojis  = ['🎉','✅','🎊','📚','👍','⭐'];
+    const count   = 12;
+    const wrap    = document.createElement('div');
+    wrap.style.cssText =
+      'position:fixed;top:0;left:0;width:100%;height:100%;' +
+      'pointer-events:none;z-index:9999;overflow:hidden';
+    document.body.appendChild(wrap);
+
+    for (let i = 0; i < count; i++) {
+      const el       = document.createElement('span');
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      const startX   = Math.random() * 100;
+      const delay    = Math.random() * 0.8;
+      const duration = 1.5 + Math.random() * 1;
+
+      el.style.cssText =
+        `position:absolute;top:-40px;left:${startX}%;` +
+        `font-size:${1.2 + Math.random()}rem;` +
+        `animation:fall ${duration}s ${delay}s ease-in forwards;` +
+        `opacity:1`;
+      wrap.appendChild(el);
+    }
+
+    // Inject the fall keyframes once
+    const style = document.createElement('style');
+    style.textContent =
+      '@keyframes fall {' +
+      '  0%   { transform: translateY(0)    rotate(0deg);   opacity: 1; }' +
+      '  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }' +
+      '}';
+    document.head.appendChild(style);
+
+    // Remove after all animations finish
+    setTimeout(() => wrap.remove(), 4000);
+  })();
+  </script>
+
+  {% endif %}{# end already_marked check #}
+
+</div>{# end result-card #}
+{% endblock %}
