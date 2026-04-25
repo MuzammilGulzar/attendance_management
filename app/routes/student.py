@@ -1311,7 +1311,8 @@ def delete_notification(notif_id):
 #    • Duplicate check prevents double-marking         (one record per student per day)
 #    • All validation lives in mark_by_roll_number()   (single source of truth)
 # ══════════════════════════════════════════════════════════════════════
-
+@login_required
+@student_required
 def scan_qr(session_id):
     """
     GET  → Validate session, fetch subject info, show the entry form.

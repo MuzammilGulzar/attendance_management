@@ -48,14 +48,14 @@ from datetime import datetime, timedelta
 #  CONSTANTS
 # ══════════════════════════════════════════════════════════════════════
 
-QR_EXPIRY_MINUTES = 5
+QR_EXPIRY_MINUTES = 2
 # How long a QR code stays valid after generation.
 
 _SERVICE_DIR = os.path.dirname(os.path.abspath(__file__))
 _APP_DIR     = os.path.dirname(_SERVICE_DIR)
 QR_FOLDER    = os.path.join(_APP_DIR, 'static', 'qr')
 
-QR_BASE_URL = os.environ.get('QR_BASE_URL', 'http://localhost:5000')
+QR_BASE_URL = os.environ.get('QR_BASE_URL', 'http://10.128.163.113:5000')
 
 
 # ══════════════════════════════════════════════════════════════════════

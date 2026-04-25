@@ -1,0 +1,102 @@
+{% extends "shared/base.html" %}
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">{{ subject.code }} — Students</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">👥 {{ subject.name }} — Students</h4>
+        <div class="d-flex gap-2">
+            <span class="badge bg-secondary">{{ subject.code }}</span>
+            <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                {{ subject.program_type }} · Sem {{ subject.semester }}
+            </span>
+            <span class="badge bg-light text-dark border">
+                {{ student_rows | length }} enrolled
+            </span>
+        </div>
+    </div>
+    <a href="{{ url_for('teacher.mark_attendance_view', subject_id=subject.id) }}"
+       class="btn btn-primary btn-sm">
+        <i class="bi bi-pencil-square me-1"></i>Mark Today
+    </a>
+</div>
+
+<!-- Low attendance alert -->
+{% set low_att = student_rows | selectattr('low_att') | list %}
+{% if low_att %}
+<div class="alert alert-warning border-0 mb-3">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>{{ low_att | length }} student(s) have attendance below 75%.</strong>
+    Consider notifying the HOD.
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Roll Number</th>
+                    <th>Name</th>
+                    <th>Subject Attendance %</th>
+                    <th>Overall %</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in student_rows %}
+            {% set student = row.student %}
+            <tr class="{{ 'table-danger' if row.low_att else '' }}">
+                <td class="text-muted small">{{ loop.index }}</td>
+                <td class="font-monospace small">{{ student.roll_number }}</td>
+                <td class="fw-semibold">
+                    {{ student.full_name }}
+                    {% if row.low_att %}
+                    <span class="badge bg-danger ms-1 small">Low</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height:6px;max-width:100px">
+                            <div class="progress-bar
+                                bg-{{ 'success' if row.pct >= 75 else 'warning' if row.pct >= 60 else 'danger' }}"
+                                 style="width:{{ row.pct }}%"></div>
+                        </div>
+                        <span class="small fw-semibold
+                            text-{{ 'success' if row.pct >= 75 else 'warning' if row.pct >= 60 else 'danger' }}">
+                            {{ row.pct }}%
+                        </span>
+                    </div>
+                </td>
+                <td class="small text-muted">
+                    {{ student.attendance_percentage }}%
+                </td>
+                <td>
+                    <a href="{{ url_for('teacher.student_attendance_detail',
+                                subject_id=subject.id,
+                                student_id=student.id) }}"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                    No students enrolled yet for this semester.
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
