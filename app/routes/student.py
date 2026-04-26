@@ -1182,7 +1182,7 @@ def my_subjects():
     return render_template('student/subjects.html',
                            title='My Subjects',
                            student=student,
-                           subjects=subjects)
+                           subjects=subjects)  # for what-if helper
 
 
 # ══════════════════════════════════════════════════════════════════════
