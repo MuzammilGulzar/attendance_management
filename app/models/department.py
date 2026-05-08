@@ -16,16 +16,16 @@ class Department(db.Model):
 
     id   = db.Column(db.Integer, primary_key=True)
 
-    # Department full name e.g. "Computer Science and Engineering"
+    # Department full name e.g. "Information Technology"
     name = db.Column(db.String(100), unique=True, nullable=False)
 
-    # Short code e.g. "CSE", "ECE", "MBA" — used in reports and displays
+    # Short code e.g. "IT", "EC" — used in reports and displays
     code = db.Column(db.String(10),  unique=True, nullable=False)
 
     # ------------------------------------------------------------------ #
     #  PROGRAM TYPE
     #  A department can offer UG, PG, or both.
-    #  'both' means the department has both B.Tech and M.Tech students.
+    #  'both' means the department has both BSc and MSc students.
     # ------------------------------------------------------------------ #
     program_type = db.Column(
         db.String(10),

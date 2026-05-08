@@ -1,0 +1,75 @@
+{% extends "shared/base.html" %}
+
+{% block content %}
+
+<form method="post">
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+
+        <!-- Header -->
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3 px-4">
+            <span class="fw-semibold fs-5">
+                {{ mark_date.strftime("%B %d, %Y") }}
+            </span>
+
+            <span class="badge bg-light text-primary px-3 py-2 rounded-pill">
+                {{ student_rows|length }} Students
+            </span>
+        </div>
+
+        <!-- Table -->
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4 py-3">Roll No.</th>
+                            <th class="py-3">Student Name</th>
+                            <th class="text-center py-3">Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in student_rows %}
+                        <tr>
+                            <td class="px-4 fw-semibold text-secondary">
+                                {{ row.student.roll_number }}
+                            </td>
+
+                            <td class="fw-medium">
+                                {{ row.student.full_name }}
+                            </td>
+
+                            <td class="text-center" style="width: 220px;">
+                                <select
+                                    name="attendance_{{ row.student.id }}"
+                                    class="form-select form-select-sm shadow-sm rounded-pill">
+
+                                    {% for status in review_statuses %}
+                                        <option
+                                            value="{{ status }}"
+                                            {% if row.current_status == status %}selected{% endif %}>
+                                            <small style="color:red;">{{ row.current_status }}</small><br>
+                                        </option>
+                                    {% endfor %}
+
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Button -->
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>
+            Submit Review
+        </button>
+    </div>
+</form>
+
+{% endblock %}

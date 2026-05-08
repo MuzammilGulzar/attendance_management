@@ -31,7 +31,7 @@ class GraduateStudentForm(FlaskForm):
         render_kw={
             'rows'        : 3,
             'placeholder' : (
-                'e.g. Completed all 8 semesters of B.Tech programme '
+                'e.g. Completed all 8 semesters of NEP 4 years programme '
                 'with satisfactory attendance and results.'
             )
         }

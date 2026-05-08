@@ -689,10 +689,26 @@ def create_app(config_name=None):
     # ------------------------------------------------------------------ #
     #  LOAD CONFIGURATION
     # ------------------------------------------------------------------ #
+    # if config_name is None:
+    #     config_name = os.environ.get('FLASK_ENV', 'development')
+
+    # # Normalise: 'production' env may also be signalled by FLASK_ENV='production'
+    # if config_name not in ('development', 'production'):
+    #     config_name = 'development'
+
+    # # Import only the config we actually need
+    # if config_name == 'production':
+    #     from config.production import ProductionConfig
+    #     app.config.from_object(ProductionConfig)
+    # else:
+    #     from config.development import DevelopmentConfig
+    #     app.config.from_object(DevelopmentConfig)
+    # ------------------------------------------------------------------ #
+    #  LOAD CONFIGURATION
+    # ------------------------------------------------------------------ #
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
 
-    # Normalise: 'production' env may also be signalled by FLASK_ENV='production'
     if config_name not in ('development', 'production'):
         config_name = 'development'
 
@@ -703,7 +719,13 @@ def create_app(config_name=None):
     else:
         from config.development import DevelopmentConfig
         app.config.from_object(DevelopmentConfig)
+    
+     # Inject SECRET_KEY and DB URI from env
+    app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
+    app.config['DEBUG'] = os.getenv("DEBUG", "False").lower() == "true"
 
+    
     # ------------------------------------------------------------------ #
     #  CONNECT EXTENSIONS TO THIS APP INSTANCE
     # ------------------------------------------------------------------ #

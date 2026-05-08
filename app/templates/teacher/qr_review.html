@@ -1,0 +1,373 @@
+{% extends "shared/base.html" %}
+
+{% block extra_css %}
+<style>
+/* Radio buttons styled as pill buttons */
+.status-btn-group {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.status-btn-group input[type="radio"] {
+    display: none;
+}
+.status-btn-group label {
+    cursor: pointer;
+    font-size: 0.78rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    user-select: none;
+}
+.status-btn-group input[value="present"]:checked + label  { background:#198754; color:#fff; border-color:transparent; }
+.status-btn-group input[value="leave"]:checked   + label  { background:#ffc107; color:#212529; border-color:transparent; }
+.status-btn-group input[value="event"]:checked   + label  { background:#0dcaf0; color:#212529; border-color:transparent; }
+.status-btn-group input[value="no_class"]:checked + label { background:#6c757d; color:#fff; border-color:transparent; }
+.status-btn-group input[value="absent"]:checked  + label  { background:#dc3545; color:#fff; border-color:transparent; }
+
+/* Sticky thead */
+.review-table thead th {
+    position: sticky; top: 0;
+    background: #f8f9fa; z-index: 1;
+}
+.review-table tbody tr:hover { background: #f0f7ff; }
+
+/* Section divider inside a single table */
+.section-header-row td {
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    color: #495057;
+    border-top: 2px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+{# ── BREADCRUMB ──────────────────────────────────────────────────── #}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item">
+            <a href="{{ url_for('teacher.dashboard') }}">Dashboard</a>
+        </li>
+        <li class="breadcrumb-item active">QR Review — {{ subject.code }}</li>
+    </ol>
+</nav>
+
+
+{# ── PAGE HEADER ─────────────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">
+            <i class="bi bi-clipboard-check me-2 text-warning"></i>
+            Review QR Attendance
+        </h4>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="badge bg-secondary font-monospace">{{ subject.code }}</span>
+            <span class="badge {{ 'bg-primary' if subject.program_type == 'UG' else 'bg-warning text-dark' }}">
+                {{ subject.program_type }} · Sem {{ subject.semester }}
+            </span>
+            <span class="text-muted small">{{ subject.name }}</span>
+        </div>
+    </div>
+    <a href="{{ url_for('teacher.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+</div>
+
+
+{# ── EMPTY STATE ─────────────────────────────────────────────────── #}
+{% if not pending_groups %}
+<div class="card border-0 shadow-sm text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-check-circle text-success" style="font-size:3rem"></i>
+        <h5 class="fw-bold mt-3 mb-1">All Clear!</h5>
+        <p class="text-muted mb-4">No pending QR submissions for this subject.</p>
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="{{ url_for('teacher.generate_qr', subject_id=subject.id) }}"
+               class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-qr-code me-1"></i>Generate QR
+            </a>
+            <a href="{{ url_for('teacher.attendance_history', subject_id=subject.id) }}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-clock-history me-1"></i>View History
+            </a>
+        </div>
+    </div>
+</div>
+
+{% else %}
+
+{# ── EXPLAINER ───────────────────────────────────────────────────── #}
+<div class="alert alert-info border-0 mb-4 small">
+    <div class="d-flex gap-2">
+        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+        <div>
+            <strong>Full class list shown.</strong>
+            Students who scanned the QR are marked
+            <span class="badge bg-success">Scanned</span> and default to
+            <strong>Present</strong>.
+            Students who did <em>not</em> scan are marked
+            <span class="badge bg-secondary">Not Scanned</span> and
+            default to <strong>Absent</strong> — change as needed before confirming.
+        </div>
+    </div>
+</div>
+
+
+{# ── ONE CARD PER DATE ───────────────────────────────────────────── #}
+{% for group in pending_groups %}
+<div class="card border-0 shadow-sm mb-4">
+
+    {# Card header — date + counts + Confirm button #}
+    <div class="card-header bg-white py-3 d-flex
+                justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-bold">
+                {{ group.date.strftime('%A, %d %b %Y') }}
+            </span>
+            <span class="badge bg-success">
+                <i class="bi bi-qr-code me-1"></i>
+                {{ group.scanned_count }} scanned
+            </span>
+            <span class="badge bg-secondary">
+                {{ group.not_scanned_count }} not scanned
+            </span>
+            <span class="text-muted small">/ {{ group.total }} total</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button"
+                    class="btn btn-outline-success btn-sm mark-all-present-btn"
+                    data-form="reviewForm-{{ loop.index }}">
+                <i class="bi bi-check2-square me-1"></i>All Present
+            </button>
+            <button type="submit"
+                    form="reviewForm-{{ loop.index }}"
+                    class="btn btn-success btn-sm">
+                <i class="bi bi-check2-all me-1"></i>Confirm
+            </button>
+        </div>
+    </div>
+
+    {#
+      FORM — one per date.
+      Two naming schemes for inputs:
+        att_<attendance_id>  → scanned students (pending record exists)
+        stu_<student_id>     → non-scanned students (no record yet)
+      The route reads these two prefixes into separate maps.
+    #}
+    <form id="reviewForm-{{ loop.index }}"
+          method="POST"
+          action="{{ url_for('teacher.review_qr', subject_id=subject.id) }}">
+        <input type="hidden" name="review_date"
+               value="{{ group.date.isoformat() }}">
+
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 review-table">
+                <thead>
+                    <tr class="text-muted small">
+                        <th class="ps-4" style="width:36px">#</th>
+                        <th>Student</th>
+                        <th>Roll No.</th>
+                        <th>QR Status</th>
+                        <th>Set Attendance</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                {# ── SECTION 1: SCANNED STUDENTS ─────────────────── #}
+                {% if group.scanned %}
+                <tr class="section-header-row">
+                    <td colspan="5">
+                        <i class="bi bi-qr-code-scan me-1 text-success"></i>
+                        Scanned QR ({{ group.scanned_count }})
+                    </td>
+                </tr>
+                {% for item in group.scanned %}
+                {% set rec = item.record %}
+                {% set stu = item.student %}
+                <tr>
+                    <td class="ps-4 text-muted small align-middle">
+                        {{ loop.index }}
+                    </td>
+                    <td class="align-middle fw-semibold small">
+                        {{ stu.full_name }}
+                    </td>
+                    <td class="align-middle font-monospace small text-muted">
+                        {{ stu.roll_number }}
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge bg-success small">
+                            <i class="bi bi-check-lg me-1"></i>Scanned
+                        </span>
+                    </td>
+                    <td class="align-middle py-2">
+                        {#
+                          Input name: att_<attendance_id>
+                          Default: present (most common for scanners)
+                        #}
+                        <div class="status-btn-group">
+                            {% for status in review_statuses %}
+                            <input type="radio"
+                                   id="att{{ rec.id }}_{{ status }}"
+                                   name="att_{{ rec.id }}"
+                                   value="{{ status }}"
+                                   {{ 'checked' if status == 'present' else '' }}>
+                            <label for="att{{ rec.id }}_{{ status }}">
+                                {{ status_labels[status] }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+
+                {# ── SECTION 2: NOT-SCANNED STUDENTS ─────────────── #}
+                {% if group.not_scanned %}
+                <tr class="section-header-row">
+                    <td colspan="5">
+                        <i class="bi bi-person-x me-1 text-secondary"></i>
+                        Did Not Scan ({{ group.not_scanned_count }})
+                        <span class="fw-normal text-muted ms-1">
+                            — select reason below
+                        </span>
+                    </td>
+                </tr>
+                {% for item in group.not_scanned %}
+                {% set stu = item.student %}
+                <tr>
+                    <td class="ps-4 text-muted small align-middle">
+                        {{ loop.index }}
+                    </td>
+                    <td class="align-middle fw-semibold small">
+                        {{ stu.full_name }}
+                    </td>
+                    <td class="align-middle font-monospace small text-muted">
+                        {{ stu.roll_number }}
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge bg-secondary small">
+                            Not Scanned
+                        </span>
+                    </td>
+                    <td class="align-middle py-2">
+                        {#
+                          Input name: stu_<student_id>
+                          Default: absent (most common for non-scanners)
+                          Teacher can override to leave/event/no_class.
+                        #}
+                        <div class="status-btn-group">
+                            {# Absent first — default for non-scanners #}
+                            <input type="radio"
+                                   id="stu{{ stu.id }}_absent"
+                                   name="stu_{{ stu.id }}"
+                                   value="absent"
+                                   checked>
+                            <label for="stu{{ stu.id }}_absent">Absent</label>
+
+                            {% for status in review_statuses %}
+                            {# Skip 'present' for non-scanners — they didn't scan #}
+                            {% if status != 'present' %}
+                            <input type="radio"
+                                   id="stu{{ stu.id }}_{{ status }}"
+                                   name="stu_{{ stu.id }}"
+                                   value="{{ status }}">
+                            <label for="stu{{ stu.id }}_{{ status }}">
+                                {{ status_labels[status] }}
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+
+                </tbody>
+            </table>
+        </div>
+
+        {# Bottom confirm bar #}
+        <div class="card-footer bg-white d-flex
+                    justify-content-between align-items-center py-2 flex-wrap gap-2">
+            <span class="small text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                Scanned students default to
+                <strong>Present</strong>. Non-scanners default to
+                <strong>Absent</strong>. Change before confirming.
+            </span>
+            <button type="submit" class="btn btn-success btn-sm">
+                <i class="bi bi-check2-all me-1"></i>
+                Confirm All ({{ group.total }})
+            </button>
+        </div>
+
+    </form>
+</div>
+{% endfor %}
+
+<div class="d-flex gap-2 justify-content-end mt-2">
+    <a href="{{ url_for('teacher.generate_qr', subject_id=subject.id) }}"
+       class="btn btn-outline-dark btn-sm">
+        <i class="bi bi-qr-code me-1"></i>Generate New QR
+    </a>
+    <a href="{{ url_for('teacher.attendance_history', subject_id=subject.id) }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-clock-history me-1"></i>View History
+    </a>
+</div>
+
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/*
+ * "All Present" button — sets all scanned-section radios to 'present'.
+ * Does NOT touch the not-scanned section (those stay Absent by default).
+ */
+document.querySelectorAll('.mark-all-present-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const form = document.getElementById(this.dataset.form);
+        if (!form) return;
+
+        // Only target att_ inputs (scanned students)
+        form.querySelectorAll('input[type="radio"][value="present"]')
+            .forEach(r => {
+                if (r.name.startsWith('att_')) r.checked = true;
+            });
+
+        this.innerHTML = '<i class="bi bi-check2-all me-1"></i>Done';
+        this.classList.replace('btn-outline-success', 'btn-success');
+        setTimeout(() => {
+            this.innerHTML = '<i class="bi bi-check2-square me-1"></i>All Present';
+            this.classList.replace('btn-success', 'btn-outline-success');
+        }, 1500);
+    });
+});
+
+/*
+ * Prevent double-submit — disable buttons + show spinner on submit.
+ */
+document.querySelectorAll('form[id^="reviewForm-"]').forEach(form => {
+    form.addEventListener('submit', function () {
+        document.querySelectorAll(
+            `[form="${this.id}"], #${this.id} [type="submit"]`
+        ).forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+        });
+    });
+});
+</script>
+{% endblock %}

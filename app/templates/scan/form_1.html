@@ -1,0 +1,299 @@
+{% extends "shared/base.html" %}
+
+{% block extra_css %}
+<style>
+  /*
+   * Mobile-first scan form styles.
+   * This page is almost always viewed on a phone.
+   * Everything is sized for thumbs, not mouse clicks.
+   */
+
+  /* Constrain card width on wide screens while filling small screens */
+  .scan-card {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* Larger-than-default inputs — easier to tap accurately on mobile */
+  .scan-input {
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Roll number field: monospace so the student can read it carefully */
+  .scan-input.roll-field {
+    font-family: 'Courier New', Courier, monospace;
+    text-transform: uppercase;    /* mirrors the server-side .upper() */
+    letter-spacing: 2px;
+  }
+
+  /* Big thumb-friendly submit button */
+  .scan-submit {
+    font-size: 1.1rem;
+    padding: 0.8rem;
+    border-radius: 10px;
+  }
+
+  /* Countdown ring colours */
+  .countdown-ok     { color: #198754; }   /* green  > 60 s  */
+  .countdown-warn   { color: #ffc107; }   /* yellow 30-60 s */
+  .countdown-urgent { color: #dc3545; }   /* red    < 30 s  */
+
+  /* Subject pill */
+  .subject-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f4ff;
+    border: 1px solid #c5d3f5;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+  }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="scan-card">
+
+  {# ── INVALID / EXPIRED STATE ─────────────────────────────────────── #}
+  {% if not valid %}
+  <div class="card border-0 shadow-sm text-center mt-2">
+    <div class="card-body p-5">
+      <div class="mb-3">
+        <i class="bi bi-qr-code text-muted" style="font-size:3.5rem; opacity:.4"></i>
+      </div>
+      <h5 class="fw-bold text-danger mb-3">QR Code Invalid</h5>
+      <p class="text-muted">{{ error }}</p>
+      <div class="alert alert-light border mt-3 text-start small">
+        <i class="bi bi-info-circle me-1 text-primary"></i>
+        Ask your teacher to generate a new QR code and scan it again.
+      </div>
+    </div>
+  </div>
+
+  {# ── VALID STATE — show the form ─────────────────────────────────── #}
+  {% else %}
+
+  {# Subject info banner — tells student which class this is for #}
+  <div class="text-center mb-4 mt-2">
+    <div class="mb-2">
+      <i class="bi bi-qr-code-scan text-primary" style="font-size:2.2rem"></i>
+    </div>
+    <h5 class="fw-bold mb-1">Mark Your Attendance</h5>
+
+    {% if subject %}
+    <div class="subject-pill mb-2">
+      <span class="badge bg-secondary font-monospace">{{ subject.code }}</span>
+      <span class="fw-semibold">{{ subject.name }}</span>
+      <span class="text-muted small">
+        · {{ subject.program_type }} Sem {{ subject.semester }}
+      </span>
+    </div>
+    {% endif %}
+
+    {# Live countdown — ticks down every second via JS #}
+    <div class="small text-muted">
+      Expires in
+      <span id="countdown"
+            class="fw-bold font-monospace
+                   {{ 'countdown-urgent' if time_remaining < 30
+                      else 'countdown-warn' if time_remaining < 60
+                      else 'countdown-ok' }}">
+        {{ '%02d:%02d' | format(time_remaining // 60, time_remaining % 60) }}
+      </span>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+
+      {# Form-level error (validation failed on POST) #}
+      {% if form_error %}
+      <div class="alert alert-danger border-0 py-2 mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>{{ form_error }}
+      </div>
+      {% endif %}
+
+      {#
+        POST to /scan/<session_id> — same URL, different method.
+        No CSRF token needed: this is a public unauthenticated form.
+        CSRF protection only matters when the user has a session/cookie
+        to protect; anonymous forms have nothing to steal.
+      #}
+      <form method="POST"
+            action="/scan/{{ session_id }}"
+            id="scanForm"
+            novalidate>
+
+        {# ── Roll Number ──────────────────────────────────────── #}
+        <div class="mb-3">
+          <label for="roll_number" class="form-label fw-semibold">
+            Roll Number <span class="text-danger">*</span>
+          </label>
+          <input type="text"
+                 id="roll_number"
+                 name="roll_number"
+                 class="form-control scan-input roll-field
+                        {% if form_error and not roll_number %}is-invalid{% endif %}"
+                 placeholder="e.g. IT2022001"
+                 value="{{ roll_number | default('') }}"
+                 autocomplete="off"
+                 autocorrect="off"
+                 autocapitalize="characters"
+                 spellcheck="false"
+                 required
+                 autofocus>
+          <div class="form-text text-muted small">
+            Enter your roll number exactly as issued (case-insensitive).
+          </div>
+        </div>
+
+        {# ── Full Name ────────────────────────────────────────── #}
+        <div class="mb-4">
+          <label for="full_name" class="form-label fw-semibold">
+            Full Name <span class="text-muted fw-normal small">(optional)</span>
+          </label>
+          <input type="text"
+                 id="full_name"
+                 name="full_name"
+                 class="form-control scan-input"
+                 placeholder="Your full name"
+                 value="{{ full_name | default('') }}"
+                 autocomplete="name">
+          <div class="form-text text-muted small">
+            Shown on confirmation only — not used for verification.
+          </div>
+        </div>
+
+        {# ── Submit ───────────────────────────────────────────── #}
+        <div class="d-grid">
+          <button type="submit"
+                  class="btn btn-primary scan-submit"
+                  id="submitBtn">
+            <i class="bi bi-check2-circle me-2"></i>Mark My Attendance
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+    <div class="card-footer bg-white border-top py-2 text-center">
+      <span class="small text-muted">
+        <i class="bi bi-shield-check text-success me-1"></i>
+        Your roll number is verified against the college database.
+      </span>
+    </div>
+  </div>
+
+  {# How it works — collapsed on mobile to save space #}
+  <div class="mt-3">
+    <button class="btn btn-link btn-sm text-muted text-decoration-none w-100"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#howItWorks">
+      <i class="bi bi-question-circle me-1"></i>How does this work?
+    </button>
+    <div class="collapse" id="howItWorks">
+      <div class="card border-0 bg-light mt-1">
+        <div class="card-body py-3 px-3 small text-muted">
+          <ol class="ps-3 mb-0">
+            <li>Enter your roll number (e.g. <code>IT2022001</code>).</li>
+            <li>The system checks you are enrolled in this subject.</li>
+            <li>If valid, your attendance is marked <strong>Present</strong>.</li>
+            <li>You will see a confirmation with your name and the date.</li>
+            <li>Each student can only mark once per day per subject.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}{# end valid #}
+
+</div>{# end scan-card #}
+{% endblock %}
+
+
+{% block extra_js %}
+{% if valid %}
+<script>
+/*
+ * Countdown timer for the QR expiry.
+ *
+ * Starts from time_remaining (seconds) injected by Jinja.
+ * Updates every second. When it hits zero, the page shows
+ * an expired message and disables the submit button so the
+ * student knows they need to get a new QR scanned.
+ *
+ * We use a local timer rather than polling the server because:
+ *   - The form page doesn't need live scan_count data
+ *   - One fewer network request per student per second
+ *   - Acceptable accuracy for a 5-minute window
+ */
+let secsLeft = {{ time_remaining }};
+
+const countdownEl = document.getElementById('countdown');
+const submitBtn   = document.getElementById('submitBtn');
+const scanForm    = document.getElementById('scanForm');
+
+function updateCountdown() {
+  if (secsLeft <= 0) {
+    onExpired();
+    return;
+  }
+
+  const mins = Math.floor(secsLeft / 60);
+  const secs = secsLeft % 60;
+  countdownEl.textContent =
+    String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+  // Change colour as time runs low
+  countdownEl.className = 'fw-bold font-monospace ';
+  if      (secsLeft < 30) countdownEl.classList.add('countdown-urgent');
+  else if (secsLeft < 60) countdownEl.classList.add('countdown-warn');
+  else                     countdownEl.classList.add('countdown-ok');
+
+  secsLeft--;
+}
+
+function onExpired() {
+  clearInterval(timer);
+
+  countdownEl.textContent = '00:00';
+  countdownEl.className   = 'fw-bold font-monospace countdown-urgent';
+
+  // Disable the form — submitting now would just fail at the server
+  if (submitBtn) {
+    submitBtn.disabled    = true;
+    submitBtn.innerHTML   =
+      '<i class="bi bi-x-circle me-2"></i>QR Expired — Cannot Mark';
+    submitBtn.classList.replace('btn-primary', 'btn-secondary');
+  }
+
+  // Show an alert above the form
+  const alert = document.createElement('div');
+  alert.className = 'alert alert-warning border-0 mt-3 text-center';
+  alert.innerHTML =
+    '<i class="bi bi-clock-history me-2"></i>' +
+    'This QR code has expired. Ask your teacher to generate a new one.';
+  scanForm.parentNode.insertBefore(alert, scanForm);
+}
+
+// Run immediately then every second
+updateCountdown();
+const timer = setInterval(updateCountdown, 1000);
+
+// Prevent double-submit (student tapping twice on slow phone)
+scanForm.addEventListener('submit', function() {
+  submitBtn.disabled  = true;
+  submitBtn.innerHTML =
+    '<span class="spinner-border spinner-border-sm me-2"></span>Marking…';
+});
+</script>
+{% endif %}
+{% endblock %}
