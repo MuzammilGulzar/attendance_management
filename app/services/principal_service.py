@@ -258,6 +258,57 @@ def assign_hod_to_dept(department_id: int, teacher_id: int):
 
     return new_hod, None
 
+def update_hod_details(teacher_id: int, first_name: str, last_name: str,
+                       email: str, employee_id: str):
+    """
+    Update an existing HOD's name, email, and employee ID.
+
+    User table:
+      - first_name
+      - last_name
+      - email
+
+    Teacher table:
+      - employee_id
+    """
+    teacher = Teacher.query.get(teacher_id)
+
+    if not teacher or not teacher.is_hod:
+        return None, 'HOD not found.'
+
+    first_name = first_name.strip()
+    last_name = last_name.strip()
+    email = email.strip().lower()
+    employee_id = employee_id.strip().upper()
+
+    if not all([first_name, last_name, email, employee_id]):
+        return None, 'All fields are required.'
+
+    existing_email = User.query.filter(
+        User.email == email,
+        User.id != teacher.user_id
+    ).first()
+
+    if existing_email:
+        return None, f'Email "{email}" is already registered.'
+
+    existing_employee = Teacher.query.filter(
+        Teacher.employee_id == employee_id,
+        Teacher.id != teacher.id
+    ).first()
+
+    if existing_employee:
+        return None, f'Employee ID "{employee_id}" is already in use.'
+
+    teacher.user.first_name = first_name
+    teacher.user.last_name = last_name
+    teacher.user.email = email
+    teacher.employee_id = employee_id
+
+    db.session.commit()
+
+    return teacher, None
+
 
 def deactivate_hod(teacher_id: int):
     """
@@ -293,6 +344,43 @@ def get_all_hods():
 
 # ── SYSTEM STATS ──────────────────────────────────────────────────────
 
+# def get_system_stats():
+#     """
+#     Aggregate numbers for the Principal dashboard.
+#     Returns a plain dict — easy to pass to a template.
+#     """
+#     from app.models.student import Student
+
+#     depts = Department.query.filter_by(is_active=True).all()
+
+#     dept_breakdown = []
+#     for dept in depts:
+#         dept_breakdown.append({
+#             'name'             : dept.name,
+#             'code'             : dept.code,
+#             'program_type'     : dept.program_type,
+#             'hod_name'         : dept.hod.full_name if dept.hod else 'Not assigned',
+#             'active_students'  : Student.query.filter_by(
+#                                     department_id=dept.id,
+#                                     is_graduated=False).count(),
+#             'graduated_students': Student.query.filter_by(
+#                                     department_id=dept.id,
+#                                     is_graduated=True).count(),
+#             'teachers'         : Teacher.query.filter_by(
+#                                     department_id=dept.id,
+#                                     is_hod=False,
+#                                     is_active=True).count(),
+#         })
+
+#     return {
+#         'total_departments'  : len(depts),
+#         'total_hods'         : Teacher.query.filter_by(is_hod=True,  is_active=True).count(),
+#         'total_teachers'     : Teacher.query.filter_by(is_hod=False, is_active=True).count(),
+#         'total_students'     : Student.query.filter_by(is_graduated=False).count(),
+#         'graduated_students' : Student.query.filter_by(is_graduated=True).count(),
+#         'dept_breakdown'     : dept_breakdown,
+#     }
+
 def get_system_stats():
     """
     Aggregate numbers for the Principal dashboard.
@@ -305,20 +393,42 @@ def get_system_stats():
     dept_breakdown = []
     for dept in depts:
         dept_breakdown.append({
-            'name'             : dept.name,
-            'code'             : dept.code,
-            'program_type'     : dept.program_type,
-            'hod_name'         : dept.hod.full_name if dept.hod else 'Not assigned',
-            'active_students'  : Student.query.filter_by(
+            'id'                : dept.id,
+            'name'              : dept.name,
+            'code'              : dept.code,
+            'program_type'      : dept.program_type,
+            'hod_name'          : dept.hod.full_name if dept.hod else 'Not assigned',
+            'active_students'   : Student.query.filter_by(
                                     department_id=dept.id,
                                     is_graduated=False).count(),
             'graduated_students': Student.query.filter_by(
                                     department_id=dept.id,
                                     is_graduated=True).count(),
-            'teachers'         : Teacher.query.filter_by(
+            'teachers'          : Teacher.query.filter_by(
                                     department_id=dept.id,
                                     is_hod=False,
                                     is_active=True).count(),
+        })
+
+    hod_breakdown = []
+
+    hods = (
+        Teacher.query
+        .filter_by(is_hod=True, is_active=True)
+        .join(Teacher.user)
+        .join(Teacher.department)
+        .order_by(Department.name)
+        .all()
+    )
+
+    for hod in hods:
+        hod_breakdown.append({
+            'id'          : hod.id,
+            'name'        : hod.full_name,
+            'email'       : hod.user.email,
+            'employee_id' : hod.employee_id,
+            'department'  : hod.department.name if hod.department else 'No department',
+            'program_type': hod.department.program_type if hod.department else '-',
         })
 
     return {
@@ -328,4 +438,5 @@ def get_system_stats():
         'total_students'     : Student.query.filter_by(is_graduated=False).count(),
         'graduated_students' : Student.query.filter_by(is_graduated=True).count(),
         'dept_breakdown'     : dept_breakdown,
+        'hod_breakdown'      : hod_breakdown,
     }

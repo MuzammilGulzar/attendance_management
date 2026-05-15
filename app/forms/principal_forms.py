@@ -199,3 +199,43 @@ class AssignHODForm(FlaskForm):
         # Teacher choices loaded dynamically via JS when dept changes
         # Default: empty — JS will populate after dept selection
         self.teacher_id.choices = []
+
+# edit hod
+class EditHODForm(FlaskForm):
+    """
+    Form for editing an existing HOD's basic account details.
+    Password is not changed here.
+    """
+
+    first_name = StringField(
+        'First Name',
+        validators=[DataRequired(), Length(min=2, max=50)],
+        render_kw={'placeholder': 'e.g. Dr. Ayesha'}
+    )
+
+    last_name = StringField(
+        'Last Name',
+        validators=[DataRequired(), Length(min=2, max=50)],
+        render_kw={'placeholder': 'e.g. Khan'}
+    )
+
+    email = StringField(
+        'Email Address',
+        validators=[
+            DataRequired(),
+            Email(message='Enter a valid email address.')
+        ],
+        render_kw={'placeholder': 'hod@college.edu'}
+    )
+
+    employee_id = StringField(
+        'Employee ID',
+        validators=[
+            DataRequired(),
+            Length(min=3, max=20),
+            Regexp(r'^[A-Za-z0-9]+$', message='Letters and numbers only.')
+        ],
+        render_kw={'placeholder': 'e.g. EMP2024001'}
+    )
+
+    submit = SubmitField('Save HOD Changes')

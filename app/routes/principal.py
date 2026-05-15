@@ -12,14 +12,24 @@ from flask import (Blueprint, render_template, redirect,
 from flask_login import login_required
 
 from app.decorators import principal_required
+# from app.services.principal_service import (
+#     create_department, update_department, deactivate_department,
+#     get_all_departments, create_hod_account, assign_hod_to_dept,
+#     deactivate_hod, get_all_hods, get_system_stats
+# )
 from app.services.principal_service import (
     create_department, update_department, deactivate_department,
     get_all_departments, create_hod_account, assign_hod_to_dept,
-    deactivate_hod, get_all_hods, get_system_stats
+    update_hod_details, deactivate_hod, get_all_hods, get_system_stats
 )
+# from app.forms.principal_forms import (
+#     CreateDepartmentForm, EditDepartmentForm,
+#     CreateHODForm, AssignHODForm
+# )
+
 from app.forms.principal_forms import (
     CreateDepartmentForm, EditDepartmentForm,
-    CreateHODForm, AssignHODForm
+    CreateHODForm, EditHODForm, AssignHODForm
 )
 
 principal_bp = Blueprint('principal', __name__)
@@ -142,6 +152,50 @@ def list_hods():
     return render_template('principal/hods.html',
                            hods=hods, title='Manage HODs')
 
+@principal_bp.route('/hods/<int:teacher_id>/edit', methods=['GET', 'POST'])
+@login_required
+@principal_required
+def edit_hod(teacher_id):
+    """
+    Edit an existing HOD's name, email, and employee ID.
+    """
+    from app.models.teacher import Teacher
+
+    hod = Teacher.query.get_or_404(teacher_id)
+
+    if not hod.is_hod:
+        flash('Selected teacher is not an HOD.', 'danger')
+        return redirect(url_for('principal.list_hods'))
+
+    form = EditHODForm()
+
+    if request.method == 'GET':
+        form.first_name.data = hod.user.first_name
+        form.last_name.data = hod.user.last_name
+        form.email.data = hod.user.email
+        form.employee_id.data = hod.employee_id
+
+    if form.validate_on_submit():
+        updated, error = update_hod_details(
+            teacher_id=teacher_id,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            email=form.email.data,
+            employee_id=form.employee_id.data
+        )
+
+        if error:
+            flash(error, 'danger')
+        else:
+            flash(f'HOD "{updated.full_name}" updated successfully.', 'success')
+            return redirect(url_for('principal.list_hods'))
+
+    return render_template(
+        'principal/edit_hod.html',
+        form=form,
+        hod=hod,
+        title='Edit HOD'
+    )
 
 @principal_bp.route('/hods/create', methods=['GET', 'POST'])
 @login_required

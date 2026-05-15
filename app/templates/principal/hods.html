@@ -7,12 +7,10 @@
         <p class="text-muted small mb-0">{{ hods|length }} active HOD(s)</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ url_for('principal.assign_hod') }}"
-           class="btn btn-outline-primary btn-sm">
+        <!-- <a href="{{ url_for('principal.assign_hod') }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-arrow-left-right me-1"></i>Reassign HOD
-        </a>
-        <a href="{{ url_for('principal.create_hod') }}"
-           class="btn btn-primary btn-sm">
+        </a> -->
+        <a href="{{ url_for('principal.create_hod') }}" class="btn btn-primary btn-sm">
             <i class="bi bi-person-plus me-1"></i>New HOD
         </a>
     </div>
@@ -55,12 +53,14 @@
                         </span>
                     </td>
                     <td>
+                        <a href="{{ url_for('principal.edit_hod', teacher_id=hod.id) }}" class="btn btn-sm btn-outline-warning me-1">
+                            <i class="bi bi-pencil-square me-1"></i>
+                            Edit
+                        </a>
                         <!-- Deactivate button with confirmation -->
-                        <form method="POST"
-                              action="{{ url_for('principal.deactivate_hod_view', teacher_id=hod.id) }}"
-                              onsubmit="return confirm('Deactivate {{ hod.full_name }} as HOD? They will lose access immediately.')">
-                            <button type="submit"
-                                    class="btn btn-sm btn-outline-danger">
+                        <form method="POST" action="{{ url_for('principal.deactivate_hod_view', teacher_id=hod.id) }}"
+                            onsubmit="return confirm('Deactivate {{ hod.full_name }} as HOD? They will lose access immediately.')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-person-x me-1"></i>Deactivate
                             </button>
                         </form>
